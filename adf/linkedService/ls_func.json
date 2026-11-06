@@ -1,0 +1,14 @@
+{
+  "type": "AzureFunction",
+  "typeProperties": {
+    "functionAppUrl": "https://__FUNC_HOST__",
+    "functionKey": {
+      "type": "AzureKeyVaultSecret",
+      "store": {
+        "referenceName": "ls_kv",
+        "type": "LinkedServiceReference"
+      },
+      "secretName": "func-host-key"
+    }
+  }
+}

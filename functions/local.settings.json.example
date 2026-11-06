@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "LAKE_MODE": "local",
+    "LAKE_ROOT": "../_lake",
+    "LAKE_ACCOUNT": "",
+    "LANGUAGE_ENDPOINT": "",
+    "LANGUAGE_KEY": "",
+    "TARGET_RATIO": "roe_ttm",
+    "AML_SUBSCRIPTION_ID": "",
+    "AML_RESOURCE_GROUP": "",
+    "AML_WORKSPACE": "",
+    "AML_COMPUTE": "cpu-cluster",
+    "AML_DATASTORE": "lakegold"
+  },
+  "Host": { "CORS": "*" }
+}

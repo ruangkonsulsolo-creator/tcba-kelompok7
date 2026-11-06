@@ -1,0 +1,6 @@
+{
+  "type": "AzureKeyVault",
+  "typeProperties": {
+    "baseUrl": "https://__KV__.vault.azure.net/"
+  }
+}

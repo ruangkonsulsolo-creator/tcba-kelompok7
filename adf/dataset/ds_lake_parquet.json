@@ -1,0 +1,37 @@
+{
+  "linkedServiceName": {
+    "referenceName": "ls_adls",
+    "type": "LinkedServiceReference"
+  },
+  "parameters": {
+    "fs": {
+      "type": "string"
+    },
+    "folder": {
+      "type": "string"
+    },
+    "file": {
+      "type": "string"
+    }
+  },
+  "type": "Parquet",
+  "typeProperties": {
+    "location": {
+      "type": "AzureBlobFSLocation",
+      "fileName": {
+        "value": "@dataset().file",
+        "type": "Expression"
+      },
+      "folderPath": {
+        "value": "@dataset().folder",
+        "type": "Expression"
+      },
+      "fileSystem": {
+        "value": "@dataset().fs",
+        "type": "Expression"
+      }
+    },
+    "compressionCodec": "snappy"
+  },
+  "schema": []
+}

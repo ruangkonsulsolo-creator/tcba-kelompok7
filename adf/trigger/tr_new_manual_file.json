@@ -1,0 +1,25 @@
+{
+  "type": "BlobEventsTrigger",
+  "description": "CSV baru di bronze/manual/",
+  "typeProperties": {
+    "blobPathBeginsWith": "/bronze/blobs/manual/",
+    "blobPathEndsWith": ".csv",
+    "ignoreEmptyBlobs": true,
+    "scope": "__LAKE_ID__",
+    "events": [
+      "Microsoft.Storage.BlobCreated"
+    ]
+  },
+  "pipelines": [
+    {
+      "pipelineReference": {
+        "referenceName": "pl_manual_to_parquet",
+        "type": "PipelineReference"
+      },
+      "parameters": {
+        "folderPath": "@triggerBody().folderPath",
+        "fileName": "@triggerBody().fileName"
+      }
+    }
+  ]
+}

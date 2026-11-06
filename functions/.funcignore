@@ -1,0 +1,8 @@
+.venv
+.vscode
+__pycache__
+*.pyc
+local.settings.json
+local.settings.json.example
+tests
+_lake

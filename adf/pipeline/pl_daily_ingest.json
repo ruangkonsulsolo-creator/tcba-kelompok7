@@ -1,0 +1,138 @@
+{
+  "description": "Harian (hari bursa): API sumber -> Bronze (asli) -> Silver (Parquet) -> Gold (fitur).",
+  "activities": [
+    {
+      "name": "IngestMarket",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "ingest_market",
+        "method": "POST",
+        "body": {
+          "days": 10
+        }
+      },
+      "dependsOn": []
+    },
+    {
+      "name": "IngestFx",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "ingest_fx",
+        "method": "POST",
+        "body": {
+          "days": 15
+        }
+      },
+      "dependsOn": []
+    },
+    {
+      "name": "IngestNews",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "ingest_news",
+        "method": "POST",
+        "body": {}
+      },
+      "dependsOn": []
+    },
+    {
+      "name": "BronzeToSilver",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "bronze_to_silver",
+        "method": "POST",
+        "body": {}
+      },
+      "dependsOn": [
+        {
+          "activity": "IngestMarket",
+          "dependencyConditions": [
+            "Completed"
+          ]
+        },
+        {
+          "activity": "IngestFx",
+          "dependencyConditions": [
+            "Completed"
+          ]
+        },
+        {
+          "activity": "IngestNews",
+          "dependencyConditions": [
+            "Completed"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BuildGold",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "build_gold",
+        "method": "POST",
+        "body": {}
+      },
+      "dependsOn": [
+        {
+          "activity": "BronzeToSilver",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ]
+    }
+  ],
+  "annotations": [
+    "tcba7"
+  ]
+}

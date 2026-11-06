@@ -1,0 +1,84 @@
+{
+  "description": "Mingguan: segarkan Silver/Gold lalu picu retraining Azure ML.",
+  "activities": [
+    {
+      "name": "BronzeToSilver",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "bronze_to_silver",
+        "method": "POST",
+        "body": {}
+      },
+      "dependsOn": []
+    },
+    {
+      "name": "BuildGold",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "build_gold",
+        "method": "POST",
+        "body": {}
+      },
+      "dependsOn": [
+        {
+          "activity": "BronzeToSilver",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Retrain",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "ml_retrain",
+        "method": "POST",
+        "body": {
+          "trigger": "schedule_weekly"
+        }
+      },
+      "dependsOn": [
+        {
+          "activity": "BuildGold",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ]
+    }
+  ],
+  "annotations": [
+    "tcba7"
+  ]
+}

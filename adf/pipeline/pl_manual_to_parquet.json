@@ -1,0 +1,207 @@
+{
+  "description": "Dipicu event: CSV manual baru di bronze/manual/<nama>/ -> Parquet di silver/manual/<nama>/ -> Gold -> retrain bila laporan keuangan.",
+  "parameters": {
+    "folderPath": {
+      "type": "string",
+      "defaultValue": "bronze/manual/fundamentals/upload_date=2026-11-06"
+    },
+    "fileName": {
+      "type": "string",
+      "defaultValue": "fundamentals.csv"
+    }
+  },
+  "variables": {
+    "datasetName": {
+      "type": "String"
+    }
+  },
+  "activities": [
+    {
+      "name": "SetDatasetName",
+      "type": "SetVariable",
+      "dependsOn": [],
+      "typeProperties": {
+        "variableName": "datasetName",
+        "value": {
+          "value": "@split(pipeline().parameters.folderPath, '/')[2]",
+          "type": "Expression"
+        }
+      }
+    },
+    {
+      "name": "CopyCsvToParquet",
+      "type": "Copy",
+      "dependsOn": [
+        {
+          "activity": "SetDatasetName",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ],
+      "policy": {
+        "timeout": "0.00:10:00",
+        "retry": 1,
+        "retryIntervalInSeconds": 60
+      },
+      "typeProperties": {
+        "source": {
+          "type": "DelimitedTextSource",
+          "storeSettings": {
+            "type": "AzureBlobFSReadSettings",
+            "recursive": false
+          },
+          "formatSettings": {
+            "type": "DelimitedTextReadSettings"
+          }
+        },
+        "sink": {
+          "type": "ParquetSink",
+          "storeSettings": {
+            "type": "AzureBlobFSWriteSettings"
+          },
+          "formatSettings": {
+            "type": "ParquetWriteSettings"
+          }
+        },
+        "enableStaging": false,
+        "dataIntegrationUnits": 2
+      },
+      "inputs": [
+        {
+          "referenceName": "ds_lake_csv",
+          "type": "DatasetReference",
+          "parameters": {
+            "fs": "bronze",
+            "folder": {
+              "value": "@replace(pipeline().parameters.folderPath, 'bronze/', '')",
+              "type": "Expression"
+            },
+            "file": {
+              "value": "@pipeline().parameters.fileName",
+              "type": "Expression"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "referenceName": "ds_lake_parquet",
+          "type": "DatasetReference",
+          "parameters": {
+            "fs": "silver",
+            "folder": {
+              "value": "@concat('manual/', variables('datasetName'))",
+              "type": "Expression"
+            },
+            "file": {
+              "value": "@concat(variables('datasetName'), '.parquet')",
+              "type": "Expression"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BronzeToSilver",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "bronze_to_silver",
+        "method": "POST",
+        "body": {
+          "max_new_sentiment": 0
+        }
+      },
+      "dependsOn": [
+        {
+          "activity": "CopyCsvToParquet",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BuildGold",
+      "type": "AzureFunctionActivity",
+      "linkedServiceName": {
+        "referenceName": "ls_func",
+        "type": "LinkedServiceReference"
+      },
+      "policy": {
+        "timeout": "0.00:04:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 60,
+        "secureOutput": false
+      },
+      "typeProperties": {
+        "functionName": "build_gold",
+        "method": "POST",
+        "body": {}
+      },
+      "dependsOn": [
+        {
+          "activity": "BronzeToSilver",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "IfFundamentals",
+      "type": "IfCondition",
+      "dependsOn": [
+        {
+          "activity": "BuildGold",
+          "dependencyConditions": [
+            "Succeeded"
+          ]
+        }
+      ],
+      "typeProperties": {
+        "expression": {
+          "value": "@equals(variables('datasetName'), 'fundamentals')",
+          "type": "Expression"
+        },
+        "ifTrueActivities": [
+          {
+            "name": "RetrainOnNewData",
+            "type": "AzureFunctionActivity",
+            "linkedServiceName": {
+              "referenceName": "ls_func",
+              "type": "LinkedServiceReference"
+            },
+            "policy": {
+              "timeout": "0.00:04:00",
+              "retry": 2,
+              "retryIntervalInSeconds": 60,
+              "secureOutput": false
+            },
+            "typeProperties": {
+              "functionName": "ml_retrain",
+              "method": "POST",
+              "body": {
+                "trigger": "event_new_fundamentals"
+              }
+            },
+            "dependsOn": []
+          }
+        ]
+      }
+    }
+  ],
+  "annotations": [
+    "tcba7"
+  ]
+}

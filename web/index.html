@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Prediksi Profitabilitas Telko</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Prediksi Arah Rasio Profitabilitas — TLKM · ISAT · EXCL</h1>
+    <p class="sub">Kelompok 7 · Teknologi Cloud untuk Big Data · Azure Data Factory → ADLS (Parquet) → Azure ML → Azure Function API</p>
+  </div>
+  <div class="status" id="status">Memuat…</div>
+</header>
+
+<main>
+  <section class="cards" id="cards"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Prediksi kuartal berikutnya</h2>
+      <span class="hint" id="model-info"></span>
+    </div>
+    <div class="table-wrap"><table id="tbl-pred"><thead><tr>
+      <th>Emiten</th><th>Kuartal dasar</th><th>Kuartal prediksi</th><th>Prediksi</th>
+      <th>P(naik)</th><th>P(stabil)</th><th>P(turun)</th><th>Rasio saat ini</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel"><div class="panel-head"><h2>Riwayat rasio (TTM)</h2>
+      <select id="ratio-sel"><option value="roe_ttm">ROE</option><option value="roa_ttm">ROA</option><option value="npm_ttm">NPM</option></select></div>
+      <div class="chart"><canvas id="ch-ratio"></canvas></div></section>
+    <section class="panel"><div class="panel-head"><h2>Probabilitas prediksi</h2></div>
+      <div class="chart"><canvas id="ch-proba"></canvas></div></section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel"><div class="panel-head"><h2>Riwayat retraining</h2><span class="badge" id="retrain-count"></span></div>
+      <div class="chart"><canvas id="ch-retrain"></canvas></div></section>
+    <section class="panel"><div class="panel-head"><h2>Faktor paling berpengaruh</h2><span class="hint">permutation importance</span></div>
+      <div class="chart"><canvas id="ch-fi"></canvas></div></section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Backtest: aktual vs prediksi (kuartal uji)</h2><span class="hint" id="bt-acc"></span></div>
+    <div class="table-wrap"><table id="tbl-bt"><thead><tr>
+      <th>Emiten</th><th>Kuartal</th><th>Untuk kuartal</th><th>Aktual</th><th>Prediksi</th><th>Benar?</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Harga penutupan saham</h2>
+      <select id="px-sel"><option>TLKM</option><option>ISAT</option><option>EXCL</option></select></div>
+    <div class="chart"><canvas id="ch-price"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Log retraining</h2></div>
+    <div class="table-wrap"><table id="tbl-rt"><thead><tr>
+      <th>#</th><th>Waktu (UTC)</th><th>Pemicu</th><th>Model terbaik</th><th>Data s.d.</th><th>Macro-F1 uji</th><th>Akurasi uji</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+</main>
+<footer>Prediksi bersifat akademik dan bukan rekomendasi investasi. Sumber: laporan keuangan IDX, Yahoo Finance, Frankfurter (ECB), Bank Indonesia, BPS, Google News/GDELT.</footer>
+<script src="app.js"></script>
+</body>
+</html>

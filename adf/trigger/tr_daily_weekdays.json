@@ -1,0 +1,36 @@
+{
+  "type": "ScheduleTrigger",
+  "description": "Senin\u2013Jumat 17:30 WIB (setelah bursa tutup)",
+  "typeProperties": {
+    "recurrence": {
+      "frequency": "Week",
+      "interval": 1,
+      "startTime": "__START__",
+      "timeZone": "SE Asia Standard Time",
+      "schedule": {
+        "weekDays": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "hours": [
+          17
+        ],
+        "minutes": [
+          30
+        ]
+      }
+    }
+  },
+  "pipelines": [
+    {
+      "pipelineReference": {
+        "referenceName": "pl_daily_ingest",
+        "type": "PipelineReference"
+      },
+      "parameters": {}
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Azure Functions (Python 3.11). Versi numpy/pandas/scikit-learn SAMA dengan aml/src/requirements.txt
+# agar model.pkl hasil training di Azure ML bisa dimuat di endpoint /api/predict.
+azure-functions
+azure-identity>=1.17
+azure-storage-file-datalake>=12.16
+azure-ai-ml>=1.20
+requests>=2.31
+numpy==1.26.4
+pandas==2.2.3
+pyarrow==17.0.0
+scikit-learn==1.5.2
+joblib==1.4.2

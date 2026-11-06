@@ -1,0 +1,25 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+# Template — infra/05_aml.sh menghasilkan aml/job_train.yml dari file ini.
+type: command
+display_name: retrain-manual
+experiment_name: tcba7-retrain
+description: Training + evaluasi + registrasi + batch scoring arah rasio profitabilitas (TLKM, ISAT, EXCL)
+code: ./src
+command: >-
+  pip install -q -r requirements.txt &&
+  python train.py --features ${{inputs.features}} --out ${{outputs.ml}} --trigger ${{inputs.trigger}}
+inputs:
+  features:
+    type: uri_folder
+    path: azureml://datastores/__DS__/paths/features/
+    mode: ro_mount
+  trigger: manual
+outputs:
+  ml:
+    type: uri_folder
+    path: azureml://datastores/__DS__/paths/ml/
+    mode: rw_mount
+environment: __ENV__
+compute: azureml:__COMPUTE__
+tags:
+  project: tcba7

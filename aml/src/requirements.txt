@@ -1,0 +1,7 @@
+# Dipasang saat job AML berjalan (tanpa membangun image custom -> tidak memicu Azure Container Registry).
+# Versi dipin agar model.pkl bisa dibuka oleh Azure Function dengan versi yang sama persis.
+numpy==1.26.4
+pandas==2.2.3
+pyarrow==17.0.0
+scikit-learn==1.5.2
+joblib==1.4.2

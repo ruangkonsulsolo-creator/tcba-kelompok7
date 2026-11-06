@@ -1,0 +1,32 @@
+{
+  "type": "ScheduleTrigger",
+  "description": "Setiap Sabtu 07:00 WIB",
+  "typeProperties": {
+    "recurrence": {
+      "frequency": "Week",
+      "interval": 1,
+      "startTime": "__START__",
+      "timeZone": "SE Asia Standard Time",
+      "schedule": {
+        "weekDays": [
+          "Saturday"
+        ],
+        "hours": [
+          7
+        ],
+        "minutes": [
+          0
+        ]
+      }
+    }
+  },
+  "pipelines": [
+    {
+      "pipelineReference": {
+        "referenceName": "pl_weekly_retrain",
+        "type": "PipelineReference"
+      },
+      "parameters": {}
+    }
+  ]
+}
