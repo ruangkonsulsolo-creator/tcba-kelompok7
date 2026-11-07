@@ -4,7 +4,7 @@
 source "$(dirname "$0")/_common.sh"
 ext datafactory
 # shellcheck disable=SC1091
-source "$ROOT/config/.func_host.env"   # FUNC_HOST dari deploy_functions.sh
+load_func_host   # FUNC_HOST dari deploy_functions.sh
 LAKE_ID="$(az storage account show -n "$SA_LAKE" -g "$RG" --query id -o tsv)"
 KV_ID="$(az keyvault show -n "$KV" --query id -o tsv)"
 

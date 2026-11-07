@@ -2,7 +2,7 @@
 # Langkah 6 — Dashboard web (UI tabel + grafik) di Azure Storage Static Website. Biaya ~USD 0,01/bulan.
 source "$(dirname "$0")/_common.sh"
 # shellcheck disable=SC1091
-source "$ROOT/config/.func_host.env"
+load_func_host
 
 log "Storage static website $SA_WEB"
 az storage account create -n "$SA_WEB" -g "$RG" -l "$LOCATION" --sku Standard_LRS --kind StorageV2 \

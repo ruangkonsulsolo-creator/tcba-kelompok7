@@ -7,8 +7,9 @@ STATE="$ROOT/config/.state.env"
 [[ -f "$CFG" ]] || { echo "❌ $CFG belum ada. Jalankan: cp config/project.env.example config/project.env"; exit 1; }
 # shellcheck disable=SC1090
 source "$CFG"
-if [[ ! -f "$STATE" ]]; then           # sufiks acak 5 karakter agar nama storage unik global
-  echo "SUFFIX=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 5)" > "$STATE"
+SUB_ID="$(az account show --query id -o tsv)"
+if [[ ! -f "$STATE" ]]; then
+  echo "SUFFIX=$(printf '%s-%s' "$SUB_ID" "$PREFIX" | sha1sum | cut -c1-5)" > "$STATE"
 fi
 # shellcheck disable=SC1090
 source "$STATE"
@@ -51,3 +52,11 @@ assign() {  # assign <principal-object-id> <role> <scope> [User|Group|ServicePri
 }
 
 ext() { az extension show -n "$1" >/dev/null 2>&1 || az extension add -n "$1" --only-show-errors; }
+
+load_func_host() {
+  if [[ -f "$ROOT/config/.func_host.env" ]]; then source "$ROOT/config/.func_host.env"; fi
+  if [[ -z "${FUNC_HOST:-}" ]]; then
+    FUNC_HOST="$(az functionapp show -g "$RG" -n "$FUNC" --query defaultHostName -o tsv)"
+    echo "FUNC_HOST=$FUNC_HOST" > "$ROOT/config/.func_host.env"
+  fi
+}
