@@ -13,7 +13,7 @@ log "Menyimpan host key ke Key Vault (dipakai linked service ADF)"
 sleep 20
 KEY="$(az functionapp keys list -g "$RG" -n "$FUNC" --query functionKeys.default -o tsv)"
 az keyvault secret set --vault-name "$KV" -n func-host-key --value "$KEY" -o none
-HOST="$(az functionapp show -g "$RG" -n "$FUNC" --query defaultHostName -o tsv)"
+HOST="$(az functionapp show -g "$RG" -n "$FUNC" --query defaultHostName -o tsv)"; HOST="${HOST:-$FUNC.azurewebsites.net}"
 echo "FUNC_HOST=$HOST" > "$ROOT/config/.func_host.env"
 ok "API: https://$HOST/api/health"
 curl -s "https://$HOST/api/health" || true; echo

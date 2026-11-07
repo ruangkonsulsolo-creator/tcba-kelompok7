@@ -56,7 +56,7 @@ ext() { az extension show -n "$1" >/dev/null 2>&1 || az extension add -n "$1" --
 load_func_host() {
   if [[ -f "$ROOT/config/.func_host.env" ]]; then source "$ROOT/config/.func_host.env"; fi
   if [[ -z "${FUNC_HOST:-}" ]]; then
-    FUNC_HOST="$(az functionapp show -g "$RG" -n "$FUNC" --query defaultHostName -o tsv)"
+    FUNC_HOST="$(az functionapp show -g "$RG" -n "$FUNC" --query defaultHostName -o tsv)"; FUNC_HOST="${FUNC_HOST:-$FUNC.azurewebsites.net}"
     echo "FUNC_HOST=$FUNC_HOST" > "$ROOT/config/.func_host.env"
   fi
 }
