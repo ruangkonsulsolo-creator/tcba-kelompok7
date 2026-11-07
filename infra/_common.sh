@@ -8,7 +8,7 @@ STATE="$ROOT/config/.state.env"
 # shellcheck disable=SC1090
 source "$CFG"
 SUB_ID="$(az account show --query id -o tsv)"
-if [[ ! -f "$STATE" ]]; then
+if [[ -n "${SUFFIX:-}" ]]; then echo "SUFFIX=$SUFFIX" > "$STATE"; elif [[ ! -f "$STATE" ]]; then
   echo "SUFFIX=$(printf '%s-%s' "$SUB_ID" "$PREFIX" | sha1sum | cut -c1-5)" > "$STATE"
 fi
 # shellcheck disable=SC1090

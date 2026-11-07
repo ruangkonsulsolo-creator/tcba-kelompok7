@@ -7,7 +7,7 @@ LAKE_ID="$(az storage account show -n "$SA_LAKE" -g "$RG" --query id -o tsv)"
 WS_ID="$(az ml workspace show -n "$AML_WS" -g "$RG" --query id -o tsv 2>/dev/null || true)"
 WEB_ID="$(az storage account show -n "$SA_WEB" -g "$RG" --query id -o tsv 2>/dev/null || true)"
 
-uid() { az ad user show --id "$1" --query id -o tsv 2>/dev/null || true; }
+source "$(dirname "$0")/_invite.sh"
 
 grant_common() {
   assign "$1" "Reader" "$RG_ID" User
