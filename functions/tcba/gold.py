@@ -113,6 +113,10 @@ def build_features(lake: Lake) -> dict:
 
     df = base.merge(mkt, on=["ticker", "period"], how="left").merge(mac, on="period", how="left")
     df = df.merge(sen, on=["ticker", "period"], how="left")
+    for c in ("ret_q", "vol_q", "volume_chg", "excess_ret_q", "ret_jkse", "usd_idr_avg", "usd_idr_chg",
+              "bi_rate", "bi_rate_chg", "inflation_yoy", "sent_mean", "sent_n", "sent_neg_share"):
+        if c not in df:
+            df[c] = np.nan
     df["has_news"] = df["sent_n"].notna().astype(int)
     df[["sent_mean", "sent_neg_share"]] = df[["sent_mean", "sent_neg_share"]].fillna(0.0)
     df["sent_n"] = df["sent_n"].fillna(0)

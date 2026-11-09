@@ -58,7 +58,9 @@ class Lake:
             with open(p, "wb") as f:
                 f.write(data)
         else:
-            self._fs(container).get_file_client(path).upload_data(data, overwrite=overwrite)
+            if not overwrite and self.exists(container, path):
+                raise FileExistsError(f"{container}/{path} sudah ada (Bronze bersifat immutable)")
+            self._fs(container).get_file_client(path).upload_data(data, overwrite=True)
         return f"{container}/{path}"
 
     def read_bytes(self, container: str, path: str) -> bytes:
