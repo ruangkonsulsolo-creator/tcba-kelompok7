@@ -137,8 +137,10 @@ def ratios(lake: Lake, q: dict | None = None):
     p = "features/features_quarterly.parquet"
     if not lake.exists(G, p):
         return _not_ready("Fitur Gold")
-    df = lake.read_parquet(G, p)[["ticker", "quarter", "period_end", "roe_ttm", "roa_ttm", "npm_ttm",
-                                   "sent_mean", "label"]]
+    df = lake.read_parquet(G, p)
+    cols = ["ticker", "quarter", "period_end", "roe_ttm", "roa_ttm", "npm_ttm", "rev_growth_yoy", "sent_mean",
+            "sent_n", "sent_neg_share", "ret_q", "vol_q", "usd_idr_avg", "bi_rate", "inflation_yoy", "label"]
+    df = df[[c for c in cols if c in df]]
     if q and q.get("ticker"):
         df = df[df["ticker"] == q["ticker"].upper()]
     return 200, {"items": records(df.sort_values(["ticker", "quarter"]))}

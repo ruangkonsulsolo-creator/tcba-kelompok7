@@ -3,144 +3,279 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Prediksi Profitabilitas Telko</title>
+  <title>Sinyal Laba · Profitabilitas operator telekomunikasi Indonesia</title>
+  <meta name="description" content="Prediksi dan analisis arah rasio profitabilitas TLKM, ISAT, dan EXCL dari data keuangan, pasar, makroekonomi, dan sentimen berita.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
-<header>
-  <div>
-    <h1>Prediksi Arah Rasio Profitabilitas — TLKM · ISAT · EXCL</h1>
-    <p class="sub">Kelompok 7 · Teknologi Cloud untuk Big Data · Azure Data Factory → ADLS (Parquet) → Azure ML → Azure Function API</p>
+<header class="masthead">
+  <div class="brand">
+    <span class="sig" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <div>
+      <p class="brand-name">Sinyal Laba</p>
+      <p class="brand-sub">Arah profitabilitas operator telekomunikasi Indonesia</p>
+    </div>
   </div>
-  <div class="status" id="status">Memuat…</div>
+  <dl class="status" id="status" aria-live="polite">
+    <div><dt>Data keuangan s.d.</dt><dd id="st-data">–</dd></div>
+    <div><dt>Model</dt><dd id="st-model">–</dd></div>
+    <div><dt>Dilatih ulang</dt><dd id="st-retrain">–</dd></div>
+    <div><dt>Sistem</dt><dd id="st-api">memeriksa…</dd></div>
+  </dl>
 </header>
 
+<nav class="tabs" role="tablist" aria-label="Bagian dashboard">
+  <button role="tab" aria-selected="true" aria-controls="tab-ringkasan" id="t-ringkasan">Ringkasan</button>
+  <button role="tab" aria-selected="false" aria-controls="tab-prediksi" id="t-prediksi">Prediksi</button>
+  <button role="tab" aria-selected="false" aria-controls="tab-akurasi" id="t-akurasi">Akurasi model</button>
+  <button role="tab" aria-selected="false" aria-controls="tab-analisis" id="t-analisis">Analisis pengaruh</button>
+  <button role="tab" aria-selected="false" aria-controls="tab-pasar" id="t-pasar">Pasar &amp; makro</button>
+  <button role="tab" aria-selected="false" aria-controls="tab-tentang" id="t-tentang">Tentang data</button>
+</nav>
+
 <main>
-  <div class="toolbar">
-    <label>Horizon prediksi
-      <select id="horizon-sel"><option value="1">Kuartal depan</option><option value="4">Tahun depan (4 kuartal)</option></select>
-    </label>
-    <span class="hint" id="horizon-hint">Arah rasio 1 kuartal setelah laporan terakhir.</span>
-  </div>
-  <section class="cards" id="cards"></section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Prediksi kuartal berikutnya</h2>
-      <span class="hint" id="model-info"></span>
-    </div>
-    <div class="table-wrap"><table id="tbl-pred"><thead><tr>
-      <th>Emiten</th><th>Kuartal dasar</th><th>Kuartal prediksi</th><th>Prediksi</th>
-      <th>P(naik)</th><th>P(stabil)</th><th>P(turun)</th><th>Rasio saat ini</th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Uji akurasi: prediksi vs aktual</h2>
-      <span class="badge" id="eval-badge">–</span>
-    </div>
-    <p class="hint live-desc">Prediksi yang <b>benar-benar dibuat sistem</b> sebelum laporan keuangan terbit, dibandingkan dengan
-      arah rasio aktual setelah laporannya keluar. Ini uji di luar sampel yang paling jujur.</p>
-    <div class="table-wrap"><table id="tbl-eval"><thead><tr>
-      <th>Emiten</th><th>Dari laporan</th><th>Untuk</th><th>Prediksi</th><th>Aktual</th><th>Rasio saat itu → aktual</th>
-      <th>Status</th><th>Dibuat</th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <section class="panel live">
-    <div class="panel-head">
-      <h2>Prediksi real-time <span class="badge live-badge" id="live-badge">LIVE</span></h2>
-      <span class="hint" id="live-info">Menghitung…</span>
-    </div>
-    <p class="hint live-desc">Dihitung saat tombol ditekan: rasio dari laporan keuangan terakhir + harga saham, IHSG, kurs,
-      BI-Rate, dan sentimen berita <b>90 hari terakhir</b>, lalu langsung dinilai oleh model hasil retrain terakhir.</p>
-    <div class="live-controls">
-      <label>Emiten <select id="live-tic"><option value="">Semua</option><option>TLKM</option><option>ISAT</option><option>EXCL</option></select></label>
-      <button id="live-run" class="btn">⚡ Prediksi sekarang</button>
-      <label class="chk"><input type="checkbox" id="live-auto"> Perbarui otomatis tiap 60 detik</label>
-    </div>
-    <details class="sim" id="sim-box">
-      <summary>Simulasi “what-if” (opsional): ubah kondisi, lihat prediksinya berubah</summary>
-      <div class="sim-grid">
-        <label>BI-Rate (%)<input type="number" step="0.25" data-f="bi_rate"></label>
-        <label>Return saham 90 hari (%)<input type="number" step="1" data-f="ret_q"></label>
-        <label>Sentimen berita (−1 s.d. 1)<input type="number" step="0.1" min="-1" max="1" data-f="sent_mean"></label>
-        <label>Perubahan kurs USD/IDR (%)<input type="number" step="0.5" data-f="usd_idr_chg"></label>
+  <!-- ============================== RINGKASAN ============================== -->
+  <section role="tabpanel" id="tab-ringkasan" aria-labelledby="t-ringkasan">
+    <div class="hero">
+      <div class="hero-text">
+        <h1 id="hero-title">Memuat prediksi…</h1>
+        <p id="hero-sub" class="lede">Sinyal Laba membaca laporan keuangan, harga saham, kurs, suku bunga, inflasi, dan berita
+          untuk memperkirakan apakah <abbr data-term="roe">ROE</abbr> tiga operator telekomunikasi terbesar Indonesia akan naik,
+          stabil, atau turun.</p>
       </div>
-      <p class="hint">Kosongkan kolom untuk memakai nilai aktual (terlihat samar). Simulasi tidak mengubah data apa pun.</p>
-      <button id="sim-reset" class="btn ghost">Kembali ke data aktual</button>
-    </details>
-    <div class="table-wrap"><table id="tbl-live"><thead><tr>
-      <th>Emiten</th><th>Laporan terakhir</th><th>Prediksi untuk</th><th>Prediksi</th><th>P(naik)</th><th>P(stabil)</th><th>P(turun)</th>
-      <th>Return 90h</th><th>Sentimen 90h</th><th>Data pasar s.d.</th>
-    </tr></thead><tbody><tr><td colspan="10" class="hint">Memuat…</td></tr></tbody></table></div>
-    <p class="warn" id="live-warn" hidden></p>
-  </section>
-
-  <div class="grid2">
-    <section class="panel"><div class="panel-head"><h2>Riwayat rasio (TTM)</h2>
-      <select id="ratio-sel"><option value="roe_ttm">ROE</option><option value="roa_ttm">ROA</option><option value="npm_ttm">NPM</option></select></div>
-      <div class="chart"><canvas id="ch-ratio"></canvas></div></section>
-    <section class="panel"><div class="panel-head"><h2>Probabilitas prediksi</h2></div>
-      <div class="chart"><canvas id="ch-proba"></canvas></div></section>
-  </div>
-
-  <div class="grid2">
-    <section class="panel"><div class="panel-head"><h2>Riwayat retraining</h2><span class="badge" id="retrain-count"></span></div>
-      <div class="chart"><canvas id="ch-retrain"></canvas></div></section>
-    <section class="panel"><div class="panel-head"><h2>Faktor paling berpengaruh</h2><span class="hint">permutation importance</span></div>
-      <div class="chart"><canvas id="ch-fi"></canvas></div></section>
-  </div>
-
-  <section class="panel">
-    <div class="panel-head"><h2>Backtest: aktual vs prediksi (kuartal uji)</h2><span class="hint" id="bt-acc"></span></div>
-    <div class="table-wrap"><table id="tbl-bt"><thead><tr>
-      <th>Emiten</th><th>Kuartal</th><th>Untuk kuartal</th><th>Aktual</th><th>Prediksi</th><th>Benar?</th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head"><h2>Harga penutupan saham</h2>
-      <select id="px-sel"><option>TLKM</option><option>ISAT</option><option>EXCL</option></select></div>
-    <div class="chart"><canvas id="ch-price"></canvas></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head"><h2>Log retraining</h2></div>
-    <div class="table-wrap"><table id="tbl-rt"><thead><tr>
-      <th>#</th><th>Waktu (UTC)</th><th>Pemicu</th><th>Model terbaik</th><th>Data s.d.</th><th>Macro-F1 uji</th><th>Akurasi uji</th>
-    </tr></thead><tbody></tbody></table></div>
-  </section>
-  <section class="panel analysis" id="analysis">
-    <div class="panel-head">
-      <h2>Analisis pengaruh: pasar keuangan, makroekonomi & sentimen berita → rasio profitabilitas</h2>
-      <span class="hint" id="an-info"></span>
+      <div class="horizon">
+        <span class="horizon-label" id="hz-label">Perkiraan untuk</span>
+        <div class="seg" role="radiogroup" aria-labelledby="hz-label">
+          <button role="radio" aria-checked="true" data-h="1">Kuartal depan</button>
+          <button role="radio" aria-checked="false" data-h="4">Tahun depan</button>
+        </div>
+      </div>
     </div>
-    <div class="live-controls">
-      <label>Rasio <select id="an-ratio"><option value="roe">ROE</option><option value="roa">ROA</option><option value="npm">NPM</option></select></label>
-      <label>Perubahan rasio <select id="an-lag"><option value="next">kuartal berikutnya (mendahului)</option><option value="same">kuartal yang sama (bersamaan)</option></select></label>
-      <label>Emiten <select id="an-tic"><option value="">Semua (panel, efek tetap emiten)</option><option>TLKM</option><option>ISAT</option><option>EXCL</option></select></label>
-    </div>
-    <ul class="concl" id="an-concl"><li class="hint">Memuat…</li></ul>
+
+    <div class="companies" id="companies"></div>
+
     <div class="grid2">
-      <div><h3>1 · Uji korelasi per variabel</h3>
-        <div class="table-wrap"><table id="tbl-corr"><thead><tr><th>Blok</th><th>Variabel</th><th>n</th>
-          <th>Pearson r</th><th>Spearman ρ</th><th>p (ρ)</th></tr></thead><tbody></tbody></table></div></div>
-      <div><h3>2 · Kontribusi tiap blok data (uji integrasi)</h3>
-        <div class="chart short"><canvas id="ch-blocks"></canvas></div>
-        <div class="table-wrap"><table id="tbl-blocks"><thead><tr><th>Blok</th><th>ΔR² unik</th><th>ΔR² sendiri</th><th>F</th><th>p</th></tr></thead><tbody></tbody></table></div>
-        <p class="hint">ΔR² unik = turunnya R² bila blok itu dikeluarkan dari model lengkap (uji F parsial).
-          ΔR² sendiri = naiknya R² bila hanya blok itu ditambahkan ke model kontrol.</p></div>
+      <article class="panel">
+        <header class="panel-head"><h2>Perjalanan <abbr data-term="roe">ROE</abbr> sejak 2020</h2>
+          <div class="seg small" role="radiogroup" aria-label="Pilih rasio" id="hist-ratio">
+            <button role="radio" aria-checked="true" data-r="roe_ttm">ROE</button>
+            <button role="radio" aria-checked="false" data-r="roa_ttm">ROA</button>
+            <button role="radio" aria-checked="false" data-r="npm_ttm">NPM</button>
+          </div></header>
+        <div class="chart"><canvas id="ch-hist" aria-label="Grafik riwayat rasio profitabilitas"></canvas></div>
+        <p class="note" id="hist-note">Rasio dihitung dari laba 4 kuartal terakhir (<abbr data-term="ttm">TTM</abbr>).</p>
+      </article>
+      <article class="panel">
+        <header class="panel-head"><h2>Posisi terbaru</h2><span class="hint" id="kpi-q"></span></header>
+        <div class="table-wrap"><table class="kpi" id="tbl-kpi"><thead><tr>
+          <th>Emiten</th><th class="num"><abbr data-term="roe">ROE</abbr></th><th class="num"><abbr data-term="roa">ROA</abbr></th>
+          <th class="num"><abbr data-term="npm">NPM</abbr></th><th class="num">Pendapatan <abbr data-term="yoy">YoY</abbr></th>
+        </tr></thead><tbody></tbody></table></div>
+        <p class="note">Angka negatif berarti perusahaan sedang merugi dalam 4 kuartal terakhir.</p>
+      </article>
     </div>
-    <h3>3 · Regresi panel (koefisien terstandar β, galat baku robust)</h3>
-    <div class="table-wrap"><table id="tbl-coef"><thead><tr><th>Variabel</th><th>Blok</th><th>β</th><th>SE</th><th>t</th><th>p</th></tr></thead><tbody></tbody></table></div>
-    <p class="hint" id="an-note"></p>
+
+    <aside class="callout" id="callout-akurasi"></aside>
+  </section>
+
+  <!-- ============================== PREDIKSI ============================== -->
+  <section role="tabpanel" id="tab-prediksi" aria-labelledby="t-prediksi" hidden>
+    <article class="panel">
+      <header class="panel-head"><h2>Peluang tiap arah</h2><span class="hint" id="model-info"></span></header>
+      <div class="chart short"><canvas id="ch-proba" aria-label="Peluang naik, stabil, turun per emiten"></canvas></div>
+      <div class="table-wrap"><table id="tbl-pred"><thead><tr>
+        <th>Emiten</th><th>Dari laporan</th><th>Untuk</th><th>Perkiraan</th><th>Keyakinan</th>
+        <th class="num">Naik</th><th class="num">Stabil</th><th class="num">Turun</th><th class="num">Rasio sekarang</th>
+      </tr></thead><tbody></tbody></table></div>
+    </article>
+
+    <article class="panel live">
+      <header class="panel-head">
+        <h2>Hitung ulang sekarang <span class="badge live-badge" id="live-badge">langsung</span></h2>
+        <span class="hint" id="live-info">Menghitung…</span>
+      </header>
+      <p class="note">Menggabungkan laporan keuangan terakhir dengan harga saham, IHSG, kurs, BI-Rate, dan berita
+        <b>90 hari terakhir</b>, lalu langsung dinilai oleh model terbaru.</p>
+      <div class="controls">
+        <label>Emiten <select id="live-tic"><option value="">Semua</option><option>TLKM</option><option>ISAT</option><option>EXCL</option></select></label>
+        <button id="live-run" class="btn">Hitung sekarang</button>
+        <label class="chk"><input type="checkbox" id="live-auto"> Perbarui tiap 60 detik</label>
+      </div>
+      <details class="sim" id="sim-box">
+        <summary>Coba skenario: bagaimana kalau kondisinya berubah?</summary>
+        <div class="sim-grid">
+          <label>BI-Rate (%)<input type="number" step="0.25" data-f="bi_rate"></label>
+          <label>Return saham 90 hari (%)<input type="number" step="1" data-f="ret_q"></label>
+          <label>Sentimen berita (−1 s.d. 1)<input type="number" step="0.1" min="-1" max="1" data-f="sent_mean"></label>
+          <label>Perubahan kurs USD/IDR (%)<input type="number" step="0.5" data-f="usd_idr_chg"></label>
+        </div>
+        <p class="note">Kosongkan untuk memakai kondisi aktual (angka samar). Skenario tidak mengubah data apa pun.</p>
+        <button id="sim-reset" class="btn ghost">Kembali ke kondisi aktual</button>
+      </details>
+      <div class="table-wrap"><table id="tbl-live"><thead><tr>
+        <th>Emiten</th><th>Laporan terakhir</th><th>Untuk</th><th>Perkiraan</th><th class="num">Naik</th><th class="num">Stabil</th>
+        <th class="num">Turun</th><th class="num">Return 90 hari</th><th class="num">Sentimen 90 hari</th><th>Harga s.d.</th>
+      </tr></thead><tbody><tr><td colspan="10" class="muted">Memuat…</td></tr></tbody></table></div>
+      <p class="warn" id="live-warn" hidden></p>
+    </article>
+  </section>
+
+  <!-- ============================== AKURASI ============================== -->
+  <section role="tabpanel" id="tab-akurasi" aria-labelledby="t-akurasi" hidden>
+    <div class="grid2">
+      <article class="panel">
+        <header class="panel-head"><h2>Seberapa sering tepat?</h2><span class="hint" id="acc-note"></span></header>
+        <div class="chart short"><canvas id="ch-compare" aria-label="Perbandingan akurasi model"></canvas></div>
+        <p class="note">Diuji pada kuartal yang <b>tidak</b> dipakai untuk melatih model (<abbr data-term="walkforward">uji maju-bertahap</abbr>).
+          Tebakan acak untuk tiga arah hanya benar sekitar 33%.</p>
+      </article>
+      <article class="panel">
+        <header class="panel-head"><h2>Tebakan vs kenyataan</h2><span class="hint">jumlah prediksi uji</span></header>
+        <div id="confusion" class="confusion"></div>
+        <p class="note">Diagonal hijau = tebakan tepat. Baris = arah sebenarnya, kolom = arah yang ditebak model.</p>
+      </article>
+    </div>
+
+    <article class="panel">
+      <header class="panel-head"><h2>Prediksi yang sudah terbukti</h2><span class="badge" id="eval-badge">–</span></header>
+      <p class="note">Perkiraan yang <b>benar-benar dikeluarkan sistem</b> sebelum laporan keuangan terbit, dicocokkan dengan hasil
+        sebenarnya setelah laporan keluar.</p>
+      <div class="table-wrap"><table id="tbl-eval"><thead><tr>
+        <th>Emiten</th><th>Dari laporan</th><th>Untuk</th><th>Perkiraan</th><th>Kenyataan</th><th>ROE saat itu → kenyataan</th>
+        <th>Hasil</th><th>Dibuat</th></tr></thead><tbody></tbody></table></div>
+    </article>
+
+    <div class="grid2">
+      <article class="panel">
+        <header class="panel-head"><h2>Faktor yang paling dipakai model</h2><span class="hint"><abbr data-term="importance">permutation importance</abbr></span></header>
+        <div class="chart"><canvas id="ch-fi" aria-label="Fitur paling berpengaruh"></canvas></div>
+      </article>
+      <article class="panel">
+        <header class="panel-head"><h2>Riwayat pelatihan ulang</h2><span class="badge" id="retrain-count"></span></header>
+        <div class="chart"><canvas id="ch-retrain" aria-label="Riwayat skor model per pelatihan ulang"></canvas></div>
+      </article>
+    </div>
+
+    <details class="panel more">
+      <summary>Lihat detail uji per kuartal dan log pelatihan</summary>
+      <h3>Uji per kuartal</h3>
+      <div class="table-wrap"><table id="tbl-bt"><thead><tr>
+        <th>Emiten</th><th>Dari laporan</th><th>Untuk</th><th>Kenyataan</th><th>Perkiraan</th><th>Tepat?</th></tr></thead><tbody></tbody></table></div>
+      <h3>Log pelatihan ulang</h3>
+      <div class="table-wrap"><table id="tbl-rt"><thead><tr>
+        <th class="num">#</th><th>Waktu (UTC)</th><th>Pemicu</th><th>Model terpilih</th><th>Data s.d.</th>
+        <th class="num"><abbr data-term="macrof1">Macro-F1</abbr></th><th class="num">Akurasi</th></tr></thead><tbody></tbody></table></div>
+    </details>
+  </section>
+
+  <!-- ============================== ANALISIS ============================== -->
+  <section role="tabpanel" id="tab-analisis" aria-labelledby="t-analisis" hidden>
+    <article class="panel lead-panel">
+      <h2>Apakah data pasar, makroekonomi, dan berita ikut menggerakkan profitabilitas?</h2>
+      <div class="controls">
+        <label>Rasio <select id="an-ratio"><option value="roe">ROE</option><option value="roa">ROA</option><option value="npm">NPM</option></select></label>
+        <label>Dibandingkan dengan perubahan <select id="an-lag"><option value="next">kuartal berikutnya</option><option value="same">kuartal yang sama</option></select></label>
+        <label>Emiten <select id="an-tic"><option value="">Ketiganya</option><option>TLKM</option><option>ISAT</option><option>EXCL</option></select></label>
+      </div>
+      <div class="r2" id="r2-hero"></div>
+      <ul class="concl" id="an-concl"><li class="muted">Memuat…</li></ul>
+    </article>
+
+    <div class="grid2">
+      <article class="panel">
+        <header class="panel-head"><h2>Sumbangan tiap kelompok data</h2><span class="hint"><abbr data-term="dr2">ΔR² unik</abbr></span></header>
+        <div class="chart short"><canvas id="ch-blocks" aria-label="Kontribusi blok data"></canvas></div>
+        <div class="table-wrap"><table id="tbl-blocks"><thead><tr><th>Kelompok</th><th class="num">ΔR² unik</th>
+          <th class="num">ΔR² sendiri</th><th class="num">F</th><th class="num"><abbr data-term="pvalue">p</abbr></th></tr></thead><tbody></tbody></table></div>
+      </article>
+      <article class="panel">
+        <header class="panel-head"><h2>Korelasi tiap variabel</h2><span class="hint"><abbr data-term="spearman">Spearman ρ</abbr></span></header>
+        <div class="chart tall"><canvas id="ch-corr" aria-label="Korelasi Spearman tiap variabel"></canvas></div>
+        <p class="note">Batang pekat = signifikan (p&lt;0,10). Kanan = searah, kiri = berlawanan arah.</p>
+      </article>
+    </div>
+
+    <article class="panel">
+      <header class="panel-head"><h2>Pengaruh bersama (regresi panel)</h2><span class="hint">koefisien terstandar β dengan rentang keyakinan 95%</span></header>
+      <div class="chart tall"><canvas id="ch-coef" aria-label="Koefisien regresi"></canvas></div>
+      <p class="note" id="an-note"></p>
+      <details class="more inline"><summary>Lihat tabel koefisien dan korelasi</summary>
+        <div class="table-wrap"><table id="tbl-coef"><thead><tr><th>Variabel</th><th>Kelompok</th><th class="num">β</th>
+          <th class="num">SE</th><th class="num">t</th><th class="num">p</th></tr></thead><tbody></tbody></table></div>
+        <div class="table-wrap"><table id="tbl-corr"><thead><tr><th>Kelompok</th><th>Variabel</th><th class="num">n</th>
+          <th class="num">Pearson r</th><th class="num">Spearman ρ</th><th class="num">p</th></tr></thead><tbody></tbody></table></div>
+      </details>
+    </article>
+  </section>
+
+  <!-- ============================== PASAR ============================== -->
+  <section role="tabpanel" id="tab-pasar" aria-labelledby="t-pasar" hidden>
+    <article class="panel">
+      <header class="panel-head"><h2>Harga saham dibanding IHSG</h2>
+        <div class="seg small" role="radiogroup" aria-label="Rentang waktu" id="px-range">
+          <button role="radio" aria-checked="false" data-d="180">6 bln</button>
+          <button role="radio" aria-checked="true" data-d="365">1 thn</button>
+          <button role="radio" aria-checked="false" data-d="1095">3 thn</button>
+        </div></header>
+      <div class="chart"><canvas id="ch-price" aria-label="Indeks harga saham"></canvas></div>
+      <p class="note">Semua harga diubah menjadi indeks (awal rentang = 100) supaya pergerakannya bisa dibandingkan langsung.</p>
+      <div class="table-wrap"><table class="kpi" id="tbl-px"><thead><tr><th>Saham</th><th class="num">Harga terakhir (Rp)</th>
+        <th class="num">Perubahan rentang ini</th><th>Tanggal</th></tr></thead><tbody></tbody></table></div>
+    </article>
+    <div class="grid2">
+      <article class="panel">
+        <header class="panel-head"><h2>Nada berita per kuartal</h2><span class="hint">dari −1 (negatif) sampai +1 (positif)</span></header>
+        <div class="chart"><canvas id="ch-sent" aria-label="Sentimen berita per kuartal"></canvas></div>
+      </article>
+      <article class="panel">
+        <header class="panel-head"><h2>Suku bunga dan inflasi</h2><span class="hint">persen</span></header>
+        <div class="chart"><canvas id="ch-macro" aria-label="BI-Rate dan inflasi"></canvas></div>
+      </article>
+    </div>
+    <article class="panel">
+      <header class="panel-head"><h2>Kurs rupiah</h2><span class="hint">rata-rata kuartalan, Rp per USD</span></header>
+      <div class="chart short"><canvas id="ch-fx" aria-label="Kurs USD/IDR"></canvas></div>
+    </article>
+  </section>
+
+  <!-- ============================== TENTANG ============================== -->
+  <section role="tabpanel" id="tab-tentang" aria-labelledby="t-tentang" hidden>
+    <article class="panel">
+      <h2>Dari data mentah sampai perkiraan</h2>
+      <ol class="flow">
+        <li><b>Kumpulkan</b><span>Harga saham &amp; IHSG (Yahoo Finance), kurs (Frankfurter/ECB), berita (Google News, GDELT) setiap hari kerja;
+          laporan keuangan, BI-Rate, dan inflasi diunggah manual.</span><em>Azure Data Factory</em></li>
+        <li><b>Simpan bertingkat</b><span>Bronze menyimpan data asli tanpa diubah, Silver merapikannya ke format Parquet,
+          Gold menyusunnya menjadi tabel fitur per kuartal.</span><em>Azure Data Lake Storage Gen2</em></li>
+        <li><b>Nilai sentimen</b><span>Judul berita dinilai positif, netral, atau negatif.</span><em>Azure AI Language</em></li>
+        <li><b>Latih &amp; pilih model</b><span>20 kandidat model diuji maju-bertahap; yang terbaik dipakai. Otomatis dilatih ulang tiap
+          minggu dan setiap ada laporan keuangan baru.</span><em>Azure Machine Learning</em></li>
+        <li><b>Sajikan</b><span>Hasil dibuka lewat API dan ditampilkan di halaman ini.</span><em>Azure Functions, Static Website</em></li>
+      </ol>
+    </article>
+    <div class="grid2">
+      <article class="panel">
+        <h2>Tiga emiten yang diamati</h2>
+        <div id="profiles" class="profiles"></div>
+      </article>
+      <article class="panel">
+        <h2>Istilah yang dipakai</h2>
+        <dl class="glossary" id="glossary"></dl>
+      </article>
+    </div>
+    <p class="disclaimer">Proyek akademik Kelompok 7, mata kuliah Teknologi Cloud untuk Big Data. Perkiraan di halaman ini
+      bukan rekomendasi investasi. Merek dan nama perusahaan adalah milik pemiliknya masing-masing.</p>
   </section>
 </main>
-<footer>Prediksi bersifat akademik dan bukan rekomendasi investasi. Sumber: laporan keuangan IDX, Yahoo Finance, Frankfurter (ECB), Bank Indonesia, BPS, Google News/GDELT.</footer>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<footer>Sumber data: laporan keuangan emiten (IDX), Yahoo Finance, Frankfurter (ECB), Bank Indonesia, BPS, Google News dan GDELT.
+  Bukan rekomendasi investasi.</footer>
 <script src="app.js"></script>
 </body>
 </html>
