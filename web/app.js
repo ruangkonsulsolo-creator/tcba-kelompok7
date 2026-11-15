@@ -1,4 +1,4 @@
-// Sinyal Laba — dashboard TCBA Kelompok 7. Membaca API Azure Function (read-only) dan menggambar halaman.
+// TCBA 7 Project — dashboard TCBA Kelompok 7. Membaca API Azure Function (read-only) dan menggambar halaman.
 const API = (window.TCBA_API_BASE || "").replace(/\/$/, "") + "/api/";
 const TICKS = ["TLKM", "ISAT", "EXCL"];
 const CO = {
@@ -61,6 +61,7 @@ const pctv = (v, d = 1) => (v == null || isNaN(v) ? "–" : num(v, d) + "%");
 const signed = (v, d = 1, u = "") => (v == null ? "–" : (v > 0 ? "+" : "") + num(v, d) + u);
 const pill = l => `<span class="pill ${l}">${ARROW[l] || ""} ${DIR[l] || l}</span>`;
 const tic = (t, label) => `<td class="tic" style="--c:${(CO[t] || {}).c || "#7c8a90"}">${label || t}</td>`;
+const logo = t => `<span class="logo${t === "ISAT" ? " wide" : ""}"><img src="logo/${t.toLowerCase()}.png" alt="Logo ${CO[t].full}" loading="lazy"></span>`;
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function fail(sel, e, cols = 9) { const el = document.querySelector(sel); if (el) el.innerHTML = `<tr><td class="err" colspan="${cols}">Data belum bisa dimuat: ${esc(e.message)}</td></tr>`; }
 
@@ -140,7 +141,7 @@ async function renderRingkasan() {
     const co = CO[r.ticker], hist = byT(r.ticker), last = hist[hist.length - 1] || {};
     const c = confidence(r);
     return `<article class="co" style="--c:${co.c}">
-      <div class="co-head"><span class="mono" aria-hidden="true">${r.ticker}</span>
+      <div class="co-head">${logo(r.ticker)}
         <div><div class="co-name">${co.name}</div><div class="co-desc">${co.full}</div></div></div>
       <div class="co-now"><span class="co-roe">${pctv(r.current_value)}</span>
         <span class="co-roe-l">ROE ${r.base_quarter}<br>${hist.length > 4 ? `${signed(last.roe_ttm - hist[hist.length - 5].roe_ttm, 1, " poin")} dibanding setahun lalu` : ""}</span></div>
@@ -391,7 +392,7 @@ async function renderPasar() {
 
 // ---------------------------------------------------------------- TENTANG
 function renderTentang() {
-  document.getElementById("profiles").innerHTML = TICKS.map(t => `<div class="profile"><span class="mono" style="background:${CO[t].c}" aria-hidden="true">${t}</span>
+  document.getElementById("profiles").innerHTML = TICKS.map(t => `<div class="profile">${logo(t)}
     <div><b>${CO[t].full}</b><p>${CO[t].desc}</p></div></div>`).join("");
   document.getElementById("glossary").innerHTML = Object.values(GLOSS).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
 }

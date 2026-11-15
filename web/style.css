@@ -1,4 +1,4 @@
-/* Sinyal Laba — sistem visual
+/* TCBA 7 Project — sistem visual
    Warna emiten dari palet kategorikal tervalidasi (CVD aman untuk 3 seri), sengaja tidak meniru warna merek. */
 :root {
   --page: #eef2f1;
@@ -82,6 +82,12 @@ section[hidden] { display: none; }
 .co-head { display: flex; align-items: center; gap: 12px; }
 .mono { width: 44px; height: 44px; border-radius: 12px; background: var(--c); color: #fff; font-weight: 800; font-size: 13px;
   display: grid; place-items: center; letter-spacing: .02em; flex: none; }
+.logo { height: 48px; width: 48px; flex: none; display: grid; place-items: center; }
+.logo.wide { width: 112px; }
+.logo img { max-height: 48px; max-width: 100%; object-fit: contain; display: block; }
+.profile .logo, .profile .logo.wide { height: 40px; width: 96px; justify-items: start; }
+.profile .logo img { max-height: 40px; }
+.profile { align-items: flex-start; }
 .co-name { font-weight: 700; font-size: 15px; line-height: 1.25; }
 .co-desc { font-size: 12.5px; color: var(--muted); }
 .co-now { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -93,7 +99,7 @@ section[hidden] { display: none; }
 .dir { font-weight: 700; }
 .dir.naik { color: var(--up); } .dir.stabil { color: var(--flat); } .dir.turun { color: var(--down); }
 
-/* signal-strength confidence (ciri khas Sinyal Laba) */
+/* signal-strength confidence (ciri khas dashboard) */
 .bars { display: inline-flex; align-items: flex-end; gap: 3px; height: 22px; flex: none; }
 .bars i { width: 6px; border-radius: 2px; background: var(--line); }
 .bars i:nth-child(1) { height: 8px; } .bars i:nth-child(2) { height: 15px; } .bars i:nth-child(3) { height: 22px; }
