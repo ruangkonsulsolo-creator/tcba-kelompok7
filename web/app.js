@@ -145,12 +145,13 @@ async function renderRingkasan() {
         <div><div class="co-name">${co.name}</div><div class="co-desc">${co.full}</div></div></div>
       <div class="co-now"><span class="co-roe">${pctv(r.current_value)}</span>
         <span class="co-roe-l">ROE ${r.base_quarter}<br>${hist.length > 4 ? `${signed(last.roe_ttm - hist[hist.length - 5].roe_ttm, 1, " poin")} dibanding setahun lalu` : ""}</span></div>
-      <div class="spark"><canvas id="sp-${r.ticker}" aria-label="Riwayat ROE ${co.name}"></canvas></div>
+      <div class="spark-wrap"><div class="spark"><canvas id="sp-${r.ticker}" aria-label="ROE ${co.name} 12 kuartal terakhir"></canvas></div>
+      <div class="spark-l">ROE 12 kuartal terakhir</div></div>
       <div class="co-pred">${barsHTML(c)}<p>${sentence(r, ratioName)}</p></div>
     </article>`;
   }).join("");
   items.forEach(r => {
-    const hist = byT(r.ticker);
+    const hist = byT(r.ticker).slice(-12);
     draw(`sp-${r.ticker}`, { type: "line", data: { labels: hist.map(x => x.quarter), datasets: [{ data: hist.map(x => x.roe_ttm),
       borderColor: CO[r.ticker].c, pointRadius: hist.map((_, i) => (i === hist.length - 1 ? 3 : 0)), pointBackgroundColor: CO[r.ticker].c, tension: .25 }] },
       options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: x => `ROE ${num(x.raw, 1)}%` } } },

@@ -201,3 +201,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 0 
   .chart { height: 250px; } .chart.tall { height: 340px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* judul seimbang, tidak menyisakan satu kata di baris terakhir */
+#hero-title, h1, h2 { text-wrap: balance; }
+.spark-wrap { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.spark-l { font-size: 11.5px; color: var(--muted); }
