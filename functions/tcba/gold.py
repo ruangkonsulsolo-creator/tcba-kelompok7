@@ -135,6 +135,13 @@ def build_features(lake: Lake) -> dict:
     thr = round(thr, 4)
     df["label"] = [direction(d, thr) for d in df["target_delta"]]
     df["predicted_quarter"] = (df["period"] + 1).astype(str)
+    # Horizon 4 kuartal (tahun depan): arah rasio TTM 4 kuartal ke depan vs sekarang (setara perubahan YoY).
+    df["target_next4"] = df.groupby("ticker")[tgt].shift(-4)
+    df["target_delta4"] = df["target_next4"] - df[tgt]
+    thr4 = float(df["target_delta4"].abs().quantile(1 / 3)) if thr_cfg == "auto" else float(thr_cfg)
+    thr4 = round(thr4, 4) if not np.isnan(thr4) else thr
+    df["label_4q"] = [direction(d, thr4) for d in df["target_delta4"]]
+    df["predicted_quarter_4q"] = (df["period"] + 4).astype(str)
     df["quarter"] = df["period"].astype(str)
     df["period_end"] = df["period"].dt.end_time.dt.normalize()
     df = df.drop(columns=["period"])
@@ -150,12 +157,13 @@ def build_features(lake: Lake) -> dict:
         if c not in df:
             df[c] = np.nan
     cols = ["ticker", "quarter", "period_end", "predicted_quarter"] + feature_cols + \
-           ["target_ratio", "target_value", "target_next", "target_delta", "label"]
+           ["target_ratio", "target_value", "target_next", "target_delta", "label",
+            "target_next4", "target_delta4", "label_4q", "predicted_quarter_4q"]
     df = df[cols]
     lake.write_parquet(G, FEATURES_PATH, df)
     lake.write_json(G, "features/feature_list.json",
                     {"features": feature_cols, "categorical": ["ticker"], "target_ratio": tgt,
-                     "stable_threshold_pp": thr, "labels": list(LABELS)})
+                     "stable_threshold_pp": thr, "stable_threshold_pp_4q": thr4, "labels": list(LABELS)})
     lab = df["label"].dropna()
     return {"job": "build_gold", "status": "ok", "rows": len(df), "labeled": int(lab.size),
             "label_counts": lab.value_counts().to_dict(),

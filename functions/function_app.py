@@ -5,6 +5,10 @@ Endpoint (prefix /api):
     POST ingest_market | ingest_fx | ingest_news | bronze_to_silver | build_gold | ml_retrain
   API publik untuk dashboard (anonim, hanya baca):
     GET  health | predictions | backtest | retrain_log | metrics | ratios | prices
+    GET  predict_live   inferensi real-time dari data terbaru (+ simulasi what-if lewat query)
+    GET  evaluation     prediksi yang pernah dibuat vs nilai aktual yang sudah terbit
+    GET  analysis       uji korelasi & regresi pengaruh pasar/makro/sentimen terhadap rasio profitabilitas
+  Parameter ?horizon=4 pada predictions/backtest/metrics/predict_live/evaluation = prediksi tahun depan.
   API prediksi on-demand (butuh function key):
     POST predict
 """
@@ -123,6 +127,18 @@ def ratios(req): return _api("ratios", req)
 
 @app.route(route="prices", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def prices(req): return _api("prices", req)
+
+
+@app.route(route="predict_live", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
+def predict_live(req): return _api("predict_live", req)
+
+
+@app.route(route="evaluation", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
+def evaluation(req): return _api("evaluation", req)
+
+
+@app.route(route="analysis", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
+def analysis(req): return _api("analysis", req)
 
 
 @app.route(route="predict", methods=["POST"])

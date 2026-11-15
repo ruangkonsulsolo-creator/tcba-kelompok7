@@ -49,6 +49,15 @@ python scripts/upload_bronze.py manual --name fundamentals --file data/fundament
 make cost      # cek biaya & resource berisiko
 ```
 
+## API untuk dashboard / Power BI (GET, tanpa key)
+| Endpoint | Isi |
+|---|---|
+| `/api/predictions?horizon=1\|4` | prediksi batch hasil retrain terakhir (1 = kuartal depan, 4 = tahun depan) |
+| `/api/predict_live?ticker=&horizon=&bi_rate=…` | inferensi real-time dari data 90 hari terakhir (+ simulasi what-if) |
+| `/api/evaluation?horizon=` | prediksi yang pernah dibuat vs nilai aktual setelah laporan terbit |
+| `/api/analysis?ratio=roe\|roa\|npm&lag=next\|same&ticker=` | uji korelasi + regresi panel + kontribusi blok pasar/makro/sentimen |
+| `/api/backtest`, `/api/metrics`, `/api/retrain_log`, `/api/ratios`, `/api/prices` | evaluasi model, riwayat retrain, rasio, harga |
+
 ## Struktur folder
 | Folder | Isi |
 |---|---|

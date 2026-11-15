@@ -95,9 +95,9 @@ def time_folds(quarters: list[str], n_splits: int = 3, min_train: int = 6):
             yield q[:cut], val
 
 
-def persistence_pred(df: pd.DataFrame, thr: float, target: str) -> list[str]:
-    """Baseline naif: arah kuartal depan = arah perubahan kuartal terakhir."""
-    chg = df[f"{target}_chg1"]
+def persistence_pred(df: pd.DataFrame, thr: float, target: str, horizon: int = 1) -> list[str]:
+    """Baseline naif: arah ke depan = arah perubahan terakhir (1 kuartal, atau 4 kuartal untuk horizon tahun)."""
+    chg = df[f"{target}_chg{4 if horizon == 4 else 1}"]
     return ["naik" if c > thr else "turun" if c < -thr else "stabil" for c in chg.fillna(0)]
 
 
@@ -122,34 +122,35 @@ def mlflow_log(params: dict, metrics: dict, model, run_name: str) -> str | None:
 
 
 # ----------------------------------------------------------------------------- main
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--features", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--trigger", default="manual")
-    ap.add_argument("--test-quarters", type=int, default=4)
-    a = ap.parse_args()
+HORIZONS = {1: {"label": "label", "pred_q": "predicted_quarter", "next": "target_next", "thr": "stable_threshold_pp",
+                "name": "kuartal depan"},
+            4: {"label": "label_4q", "pred_q": "predicted_quarter_4q", "next": "target_next4",
+                "thr": "stable_threshold_pp_4q", "name": "tahun depan (4 kuartal)"}}
 
-    df, meta = load_features(a.features)
-    features = meta.get("features") or [c for c in df.columns if df[c].dtype.kind in "fi"
-                                         and c not in ("target_value", "target_next", "target_delta")]
-    target = meta.get("target_ratio", df["target_ratio"].iloc[0] if "target_ratio" in df else "roe_ttm")
-    thr = float(meta.get("stable_threshold_pp", 0.5))
-    df["period_end"] = pd.to_datetime(df["period_end"])
-    for c in features:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
+
+def run_horizon(df: pd.DataFrame, meta: dict, features: list[str], target: str, horizon: int,
+                test_quarters: int, run_id: str, now: dt.datetime, trigger: str) -> dict | None:
+    """Seleksi model (CV waktu) -> evaluasi hold-out -> refit -> prediksi, untuk satu horizon."""
+    h = HORIZONS[horizon]
+    if h["label"] not in df:
+        return None
+    df = df.copy()
+    df["label"], df["predicted_quarter"], df["target_next"] = df[h["label"]], df[h["pred_q"]], df[h["next"]]
+    thr = float(meta.get(h["thr"], meta.get("stable_threshold_pp", 0.5)))
 
     lab = df[df["label"].notna()].sort_values(["period_end", "ticker"]).reset_index(drop=True)
     unl = df[df["label"].isna()].sort_values("period_end").groupby("ticker").tail(1)
     quarters = sorted(lab["quarter"].unique())
     if len(lab) < 12 or len(quarters) < 6:
-        raise SystemExit(f"Data berlabel terlalu sedikit ({len(lab)} baris, {len(quarters)} kuartal).")
-    n_test_q = a.test_quarters if len(quarters) >= 12 else max(1, len(quarters) // 4)
+        if horizon == 1:
+            raise SystemExit(f"Data berlabel terlalu sedikit ({len(lab)} baris, {len(quarters)} kuartal).")
+        print(f"[h{horizon}] dilewati: data berlabel terlalu sedikit ({len(lab)} baris)")
+        return None
+    n_test_q = test_quarters if len(quarters) >= 12 else max(1, len(quarters) // 4)
     test_q = quarters[-n_test_q:]
     train, test = lab[~lab["quarter"].isin(test_q)], lab[lab["quarter"].isin(test_q)]
     cols = features + ["ticker"]
 
-    # ---- seleksi model dengan CV berbasis waktu
     models = make_models(features)
     cv = {}
     for name, mdl in models.items():
@@ -164,14 +165,13 @@ def main() -> None:
     best_name = max(cv, key=cv.get)
     best = clone(models[best_name]).fit(train[cols], train["label"])
 
-    # ---- evaluasi pada kuartal uji (hold-out paling akhir)
     y_pred = best.predict(test[cols])
-    p, r, f, s = precision_recall_fscore_support(test["label"], y_pred, labels=LABELS, zero_division=0)
+    p, r, f, s_ = precision_recall_fscore_support(test["label"], y_pred, labels=LABELS, zero_division=0)
     maj = DummyClassifier(strategy="most_frequent").fit(train[cols], train["label"]).predict(test[cols])
-    pers = persistence_pred(test, thr, target)
+    pers = persistence_pred(test, thr, target, horizon)
     test_metrics = {
         "accuracy": float(accuracy_score(test["label"], y_pred)), "macro_f1": macro_f1(test["label"], y_pred),
-        "per_class": {lbl: {"precision": float(p[i]), "recall": float(r[i]), "f1": float(f[i]), "support": int(s[i])}
+        "per_class": {lbl: {"precision": float(p[i]), "recall": float(r[i]), "f1": float(f[i]), "support": int(s_[i])}
                       for i, lbl in enumerate(LABELS)},
         "confusion_matrix": {"labels": LABELS, "matrix": confusion_matrix(test["label"], y_pred, labels=LABELS).tolist()},
     }
@@ -191,10 +191,7 @@ def main() -> None:
     backtest["correct"] = backtest["actual"] == backtest["predicted"]
     backtest[proba_cols(best)] = best.predict_proba(test[cols])
 
-    # ---- refit pada seluruh data berlabel, lalu prediksi kuartal berikutnya (batch scoring)
     final = clone(models[best_name]).fit(lab[cols], lab["label"])
-    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-    run_id = os.getenv("AZUREML_RUN_ID") or f"local-{now.strftime('%Y%m%dT%H%M%SZ')}"
     pred = unl[["ticker", "quarter", "predicted_quarter", "target_value"]].rename(
         columns={"quarter": "base_quarter", "target_value": "current_value"}).copy()
     if len(unl):
@@ -206,48 +203,86 @@ def main() -> None:
         if f"proba_{c}" not in pred:
             pred[f"proba_{c}"] = 0.0
     pred["target_ratio"], pred["model_name"], pred["run_id"] = target, best_name, run_id
-    pred["generated_at"] = now.isoformat()
+    pred["generated_at"], pred["horizon"] = now.isoformat(), horizon
 
-    model_version = mlflow_log({"best_model": best_name, "target": target, "trigger": a.trigger,
+    model_version = mlflow_log({"best_model": best_name, "target": target, "trigger": trigger, "horizon": horizon,
                                 "n_train": len(train), "n_test": len(test)},
                                {"cv_macro_f1": cv[best_name], "test_accuracy": test_metrics["accuracy"],
-                                "test_macro_f1": test_metrics["macro_f1"]}, final, f"retrain-{a.trigger}")
-
-    metrics = {"run_id": run_id, "trained_at": now.isoformat(), "trigger": a.trigger, "best_model": best_name,
+                                "test_macro_f1": test_metrics["macro_f1"]}, final,
+                               f"retrain-{trigger}" + ("" if horizon == 1 else f"-h{horizon}"))
+    metrics = {"run_id": run_id, "trained_at": now.isoformat(), "trigger": trigger, "best_model": best_name,
+               "horizon": horizon, "horizon_name": h["name"],
                "model_version": model_version, "target_ratio": target, "stable_threshold_pp": thr,
                "n_rows_labeled": len(lab), "n_train": len(train), "n_test": len(test), "test_quarters": test_q,
                "data_max_quarter": str(df["quarter"].max()), "cv_macro_f1": cv, "test": test_metrics,
                "baselines": baselines, "sklearn_version": sklearn.__version__}
+    bundle = {"model": final, "features": features, "classes": list(final.classes_), "model_name": best_name,
+              "run_id": run_id, "trained_at": now.isoformat(), "horizon": horizon}
+    return {"pred": pred, "backtest": backtest, "fi": fi, "metrics": metrics, "bundle": bundle,
+            "n_lab": len(lab), "cv_best": cv[best_name]}
 
-    # ---- tulis output
+
+def write_outputs(res: dict, folder: str) -> None:
+    os.makedirs(folder, exist_ok=True)
+    write_table(res["pred"], os.path.join(folder, "predictions.parquet"))
+    write_table(res["backtest"], os.path.join(folder, "backtest.parquet"))
+    write_table(res["fi"], os.path.join(folder, "feature_importance.parquet"))
+    json.dump(res["metrics"], open(os.path.join(folder, "metrics.json"), "w"), indent=2, default=str)
+    joblib.dump(res["bundle"], os.path.join(folder, "model.pkl"))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--features", required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--trigger", default="manual")
+    ap.add_argument("--test-quarters", type=int, default=4)
+    a = ap.parse_args()
+
+    df, meta = load_features(a.features)
+    features = meta.get("features") or [c for c in df.columns if df[c].dtype.kind in "fi" and c not in (
+        "target_value", "target_next", "target_delta", "target_next4", "target_delta4")]
+    target = meta.get("target_ratio", df["target_ratio"].iloc[0] if "target_ratio" in df else "roe_ttm")
+    df["period_end"] = pd.to_datetime(df["period_end"])
+    for c in features:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+
+    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    run_id = os.getenv("AZUREML_RUN_ID") or f"local-{now.strftime('%Y%m%dT%H%M%SZ')}"
+    r1 = run_horizon(df, meta, features, target, 1, a.test_quarters, run_id, now, a.trigger)
+    r4 = run_horizon(df, meta, features, target, 4, a.test_quarters, run_id, now, a.trigger)
+
+    # ---- tulis output (horizon 1 di latest/ agar kompatibel; horizon 4 di latest/h4/)
     latest = os.path.join(a.out, "latest")
     if os.path.isdir(latest):
         shutil.rmtree(latest, ignore_errors=True)
-    os.makedirs(latest, exist_ok=True)
-    write_table(pred, os.path.join(latest, "predictions.parquet"))
-    write_table(backtest, os.path.join(latest, "backtest.parquet"))
-    write_table(fi, os.path.join(latest, "feature_importance.parquet"))
-    json.dump(metrics, open(os.path.join(latest, "metrics.json"), "w"), indent=2, default=str)
-    joblib.dump({"model": final, "features": features, "classes": list(final.classes_), "model_name": best_name,
-                 "run_id": run_id, "trained_at": now.isoformat()}, os.path.join(latest, "model.pkl"))
+    write_outputs(r1, latest)
+    if r4:
+        write_outputs(r4, os.path.join(latest, "h4"))
     run_dir = os.path.join(a.out, "runs", run_id.replace("/", "_"))
     shutil.copytree(latest, run_dir, dirs_exist_ok=True)
 
+    m1 = r1["metrics"]
     log_path = os.path.join(a.out, "retrain_log.parquet")
-    row = pd.DataFrame([{"run_id": run_id, "trained_at": now.isoformat(), "trigger": a.trigger, "best_model": best_name,
-                         "model_version": model_version, "n_rows_labeled": len(lab),
-                         "data_max_quarter": metrics["data_max_quarter"], "cv_macro_f1": cv[best_name],
-                         "test_accuracy": test_metrics["accuracy"], "test_macro_f1": test_metrics["macro_f1"],
-                         "baseline_persistence_f1": baselines["persistence"]["macro_f1"]}])
+    row = pd.DataFrame([{"run_id": run_id, "trained_at": now.isoformat(), "trigger": a.trigger,
+                         "best_model": m1["best_model"], "model_version": m1["model_version"],
+                         "n_rows_labeled": r1["n_lab"], "data_max_quarter": m1["data_max_quarter"],
+                         "cv_macro_f1": r1["cv_best"], "test_accuracy": m1["test"]["accuracy"],
+                         "test_macro_f1": m1["test"]["macro_f1"],
+                         "baseline_persistence_f1": m1["baselines"]["persistence"]["macro_f1"],
+                         "h4_best_model": r4["metrics"]["best_model"] if r4 else None,
+                         "h4_test_macro_f1": r4["metrics"]["test"]["macro_f1"] if r4 else None}])
     log = pd.concat([read_table(log_path), row], ignore_index=True) if os.path.exists(log_path) else row
     write_table(log, log_path)
     hist_path = os.path.join(a.out, "history", "predictions_history.parquet")
-    hist = pd.concat([read_table(hist_path), pred], ignore_index=True) if os.path.exists(hist_path) else pred
+    new_hist = pd.concat([r1["pred"]] + ([r4["pred"]] if r4 else []), ignore_index=True)
+    hist = pd.concat([read_table(hist_path), new_hist], ignore_index=True) if os.path.exists(hist_path) else new_hist
     write_table(hist, hist_path)
 
-    print(json.dumps({"run_id": run_id, "best_model": best_name, "cv_macro_f1": cv,
-                      "test_macro_f1": round(test_metrics["macro_f1"], 3), "retrain_count": len(log),
-                      "predictions": pred[["ticker", "predicted_quarter", "prediction"]].to_dict("records")},
+    print(json.dumps({"run_id": run_id, "best_model": m1["best_model"], "cv_macro_f1": m1["cv_macro_f1"],
+                      "test_macro_f1": round(m1["test"]["macro_f1"], 3), "retrain_count": len(log),
+                      "h4_test_macro_f1": round(r4["metrics"]["test"]["macro_f1"], 3) if r4 else None,
+                      "predictions": new_hist[["ticker", "horizon", "predicted_quarter", "prediction"]].to_dict("records")},
                      indent=2, default=str))
 
 

@@ -29,3 +29,35 @@ select { padding:5px 8px; border-radius:6px; border:1px solid var(--line); }
 .err { color:var(--down); font-size:13px; }
 footer { text-align:center; color:var(--mute); font-size:12px; padding:0 16px 24px; }
 @media (max-width:600px){ h1{font-size:17px} .chart{height:240px} }
+
+/* Panel prediksi real-time */
+.panel.live { border-color:#b9d3ef; }
+.live-badge { background:#fde8e6; color:var(--down); margin-left:6px; vertical-align:middle; }
+.live-badge.sim { background:#fbf3d9; color:var(--flat); }
+.live-badge.pulse { animation:pulse 1s ease-out; }
+@keyframes pulse { from { box-shadow:0 0 0 0 rgba(192,57,43,.5); } to { box-shadow:0 0 0 10px rgba(192,57,43,0); } }
+.live-desc { margin:0 0 10px; }
+.live-controls { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px; font-size:13px; }
+.btn { background:var(--blue); color:#fff; border:0; border-radius:6px; padding:7px 14px; font-weight:700; cursor:pointer; font-size:13px; }
+.btn:disabled { opacity:.6; cursor:wait; } .btn.ghost { background:#e8f1fb; color:var(--blue); }
+.chk { display:flex; gap:6px; align-items:center; color:var(--mute); }
+.sim { background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:13px; }
+.sim summary { cursor:pointer; font-weight:600; }
+.sim-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin:10px 0 6px; }
+.sim-grid label { display:flex; flex-direction:column; gap:4px; color:var(--mute); font-size:12px; }
+.sim-grid input { padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; }
+td.changed { background:#fff7d6; }
+.warn { background:#fff4e5; color:#8a4b00; border-radius:6px; padding:8px 10px; font-size:12px; margin:10px 0 0; }
+
+/* Horizon, evaluasi, analisis */
+.toolbar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:14px; font-size:13px; font-weight:600; }
+.toolbar select { margin-left:6px; font-weight:600; }
+.st-benar { color:var(--up); font-weight:700; } .st-salah { color:var(--down); font-weight:700; } .st-menunggu { color:var(--mute); }
+.analysis h3 { font-size:13px; margin:14px 0 6px; color:var(--navy); }
+.concl { margin:6px 0 4px; padding-left:18px; font-size:13px; line-height:1.55; }
+.chart.short { height:200px; }
+td.rho { font-weight:700; text-align:right; } td.num { text-align:right; }
+.blk { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:700; background:#eef2f7; }
+.blk.pasar { background:#e8f1fb; color:var(--blue); } .blk.makro { background:#fbf3d9; color:var(--flat); }
+.blk.sentimen { background:#e3f4ec; color:var(--up); } .blk.kontrol { background:#f0f0f0; color:var(--mute); }
+tr.sig td { background:#fffbea; }
