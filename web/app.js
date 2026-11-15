@@ -28,7 +28,7 @@ async function loadPredictions() {
     const p = await get("predictions" + HQ());
     const ratio = (p.target_ratio || "roe_ttm").replace("_ttm", "").toUpperCase();
     document.getElementById("model-info").textContent =
-      `Model: ${p.model} · target: arah ${ratio} TTM ${p.horizon === 4 ? "4 kuartal ke depan" : "kuartal depan"} · dilatih ${String(p.trained_at || "").slice(0, 16).replace("T", " ")} UTC · macro-F1 uji ${num(p.test_macro_f1)} (baseline ${num(p.baseline_persistence_f1)})`;
+      `Model: ${p.model}${p.jenis_model ? ` (${p.jenis_model}, ${p.n_fitur} fitur)` : ""} · target: arah ${ratio} TTM ${p.horizon === 4 ? "4 kuartal ke depan" : "kuartal depan"} · dilatih ${String(p.trained_at || "").slice(0, 16).replace("T", " ")} UTC · macro-F1 uji ${num(p.test_macro_f1)}${p.n_uji ? ` (${p.n_uji} prediksi walk-forward)` : ""} · baseline ${num(p.baseline_persistence_f1)}${p.model_lama_f1 != null ? ` · model lama ${num(p.model_lama_f1)}` : ""}`;
     document.querySelector("#tbl-pred tbody").innerHTML = p.items.map(r => `<tr>
       <td><b>${r.ticker}</b></td><td>${r.base_quarter}</td><td>${r.predicted_quarter}</td><td>${pill(r.prediction)}</td>
       <td>${pct(r.proba_naik)}</td><td>${pct(r.proba_stabil)}</td><td>${pct(r.proba_turun)}</td><td>${num(r.current_value)}%</td></tr>`).join("");
@@ -134,11 +134,16 @@ async function loadLive() {
     }).join("");
     if (!sim) { d.items.forEach(r => (lastLive[r.ticker] = r.prediction)); fillSimPlaceholders(d.items); }
     const stale = d.items.filter(r => r.fundamentals_stale).map(r => r.ticker);
+    const msgs = [];
+    if (stale.length) msgs.push(`Laporan keuangan terakhir ${stale.join(", ")} belum kuartal terbaru, ` +
+      `jadi prediksinya masih untuk kuartal setelah laporan itu (kuartal sekarang ${d.current_quarter}).`);
+    const used = d.fitur_live_dipakai || [];
+    if (!used.length) msgs.push(`Model terpilih (${d.model}) hanya memakai rasio fundamental & efek basis, karena itu yang ` +
+      `terbukti paling akurat di uji walk-forward. Data pasar/makro/berita di tabel ini ditampilkan sebagai konteks; ` +
+      `simulasi what-if tidak mengubah prediksi untuk horizon ini.`);
     const w = document.getElementById("live-warn");
-    w.hidden = !stale.length;
-    w.textContent = stale.length ? `Laporan keuangan terakhir ${stale.join(", ")} masih ${d.items[0].fundamental_quarter}, ` +
-      `jadi prediksi masih untuk ${d.items[0].predicted_quarter} (kuartal sekarang ${d.current_quarter}). ` +
-      `Tambahkan laporan kuartal terbaru agar prediksi maju.` : "";
+    w.hidden = !msgs.length;
+    w.textContent = msgs.join(" ");
   } catch (e) { fail("#tbl-live tbody", e); }
   btn.disabled = false;
 }

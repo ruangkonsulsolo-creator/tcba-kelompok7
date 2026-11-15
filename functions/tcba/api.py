@@ -61,7 +61,10 @@ def predictions(lake: Lake, q: dict | None = None):
     return 200, {"items": records(df), "model": meta.get("best_model"), "run_id": meta.get("run_id"),
                  "trained_at": meta.get("trained_at"), "target_ratio": meta.get("target_ratio"),
                  "horizon": horizon_of(q), "test_macro_f1": (meta.get("test") or {}).get("macro_f1"),
-                 "baseline_persistence_f1": ((meta.get("baselines") or {}).get("persistence") or {}).get("macro_f1")}
+                 "baseline_persistence_f1": ((meta.get("baselines") or {}).get("persistence") or {}).get("macro_f1"),
+                 "model_lama_f1": ((meta.get("baselines") or {}).get("model_lama") or {}).get("macro_f1"),
+                 "n_uji": (meta.get("test") or {}).get("n"), "walk_forward": meta.get("walk_forward"),
+                 "jenis_model": meta.get("jenis_model"), "n_fitur": meta.get("n_fitur")}
 
 
 def backtest(lake: Lake, q: dict | None = None):

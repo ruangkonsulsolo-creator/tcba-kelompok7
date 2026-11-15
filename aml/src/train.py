@@ -17,6 +17,7 @@ import glob
 import json
 import os
 import shutil
+import sys
 import warnings
 
 import joblib
@@ -25,14 +26,16 @@ import pandas as pd
 import sklearn
 from sklearn.base import clone
 from sklearn.compose import ColumnTransformer
-from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.inspection import permutation_importance
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tcba_model import RegDirection  # noqa: E402
 
 warnings.filterwarnings("ignore")
 LABELS = ["turun", "stabil", "naik"]
@@ -60,45 +63,84 @@ def load_features(folder: str) -> tuple[pd.DataFrame, dict]:
 
 
 # ----------------------------------------------------------------------------- models
-def make_models(features: list[str]) -> dict:
-    def pre(scale: bool):
-        num = [("imp", SimpleImputer(strategy="median"))] + ([("sc", StandardScaler())] if scale else [])
-        return ColumnTransformer([
-            ("num", Pipeline(num), features),
-            ("cat", OneHotEncoder(handle_unknown="ignore"), ["ticker"]),
-        ])
-    return {
-        "logistic_regression": Pipeline([("pre", pre(True)), ("clf", LogisticRegression(
-            C=0.5, max_iter=2000, class_weight="balanced"))]),
-        "random_forest": Pipeline([("pre", pre(False)), ("clf", RandomForestClassifier(
-            n_estimators=300, max_depth=4, min_samples_leaf=3, class_weight="balanced_subsample", random_state=42))]),
-        "hist_gradient_boosting": Pipeline([("pre", pre(False)), ("clf", HistGradientBoostingClassifier(
-            max_depth=3, learning_rate=0.05, max_iter=200, l2_regularization=1.0, class_weight="balanced",
-            random_state=42))]),
-    }
+# Fitur "ringkas": fundamental inti + efek basis + variabel yang terbukti berpengaruh di analisis pengaruh
+# (/api/analysis) + penanda kejadian khusus. Dengan ±70 baris data, fitur sedikit = overfitting lebih kecil.
+RINGKAS = ["roe_ttm", "roe_ttm_chg1", "roe_ttm_chg4", "npm_ttm_chg1", "rev_growth_yoy",
+           "roe_q", "roe_q_drop", "base_gap", "ni_base_gap",
+           "vol_q", "volume_chg", "ret_q", "usd_idr_chg", "bi_rate_chg", "sent_mean", "sent_n",
+           "evt_merger", "evt_akuntansi"]
+
+
+def _pre(features: list[str], scale: bool):
+    num = [("imp", SimpleImputer(strategy="median"))] + ([("sc", StandardScaler())] if scale else [])
+    return ColumnTransformer([("num", Pipeline(num), features),
+                              ("cat", OneHotEncoder(handle_unknown="ignore"), ["ticker"])])
+
+
+# Fitur "inti": efek basis TTM (korelasi ±0,7 dengan perubahan ROE kuartal depan pada data asli) + kejadian khusus.
+INTI = ["base_gap", "ni_base_gap", "roe_q", "roe_q_drop", "roe_ttm_chg1"]
+INTI_EVENT = INTI + ["evt_merger", "evt_akuntansi"]
+
+
+def make_candidates(all_features: list[str], thr: float, horizon: int = 1) -> dict:
+    """Kandidat = (algoritma) × (set fitur). 'clf' = klasifikasi langsung, 'reg' = regresi Δ lalu jadi arah."""
+    sets = {"lengkap": all_features, "ringkas": [f for f in RINGKAS if f in all_features] or all_features}
+    for name, lst in (("inti", INTI), ("inti_event", INTI_EVENT)):
+        # Efek basis adalah mekanisme 1 kuartal (kuartal yang keluar dari jendela TTM); tidak relevan untuk 4 kuartal.
+        if horizon == 1 and all(f in all_features for f in INTI):
+            sets[name] = [f for f in lst if f in all_features]
+    out = {}
+    for sname, feats in sets.items():
+        out[f"logistic_regression|{sname}"] = ("clf", feats, Pipeline([("pre", _pre(feats, True)), ("clf", LogisticRegression(
+            C=0.3, max_iter=3000, class_weight="balanced"))]))
+        out[f"random_forest|{sname}"] = ("clf", feats, Pipeline([("pre", _pre(feats, False)), ("clf", RandomForestClassifier(
+            n_estimators=200, max_depth=3, min_samples_leaf=4, class_weight="balanced_subsample", random_state=42))]))
+        out[f"hist_gradient_boosting|{sname}"] = ("clf", feats, Pipeline([("pre", _pre(feats, False)), ("clf", HistGradientBoostingClassifier(
+            max_depth=2, learning_rate=0.05, max_iter=120, l2_regularization=2.0, class_weight="balanced", random_state=42))]))
+        out[f"ridge_regresi_arah|{sname}"] = ("reg", feats, RegDirection(
+            Pipeline([("pre", _pre(feats, True)), ("reg", Ridge(alpha=5.0))]), thr=thr))
+        out[f"rf_regresi_arah|{sname}"] = ("reg", feats, RegDirection(
+            Pipeline([("pre", _pre(feats, False)), ("reg", RandomForestRegressor(
+                n_estimators=200, max_depth=3, min_samples_leaf=4, random_state=42))]), thr=thr))
+    return out
 
 
 def macro_f1(y, p) -> float:
     return float(f1_score(y, p, labels=LABELS, average="macro", zero_division=0))
 
 
-def time_folds(quarters: list[str], n_splits: int = 3, min_train: int = 6):
-    """Expanding-window CV berbasis kuartal (tanpa kebocoran data masa depan)."""
-    q = sorted(quarters)
-    if len(q) < min_train + n_splits:
-        n_splits = max(1, len(q) - min_train)
-    step = max(1, (len(q) - min_train) // max(n_splits, 1))
-    for k in range(n_splits):
-        cut = min_train + k * step
-        val = q[cut:cut + step]
-        if val:
-            yield q[:cut], val
-
-
 def persistence_pred(df: pd.DataFrame, thr: float, target: str, horizon: int = 1) -> list[str]:
     """Baseline naif: arah ke depan = arah perubahan terakhir (1 kuartal, atau 4 kuartal untuk horizon tahun)."""
     chg = df[f"{target}_chg{4 if horizon == 4 else 1}"]
     return ["naik" if c > thr else "turun" if c < -thr else "stabil" for c in chg.fillna(0)]
+
+
+def _fit(kind, feats, est, d: pd.DataFrame):
+    cols = feats + ["ticker"]
+    y = d["target_delta"] if kind == "reg" else d["label"]
+    return clone(est).fit(d[cols], y)
+
+
+def walk_forward(lab: pd.DataFrame, kind, feats, est, eval_q: list[str], gap: int, quarters: list[str]) -> pd.DataFrame:
+    """Uji maju-bertahap: untuk tiap kuartal q, latih HANYA dengan data yang labelnya sudah diketahui saat itu
+    (kuartal dasar < q - (gap-1)), lalu prediksi kuartal q. Tidak ada kebocoran data masa depan."""
+    rows = []
+    cols = feats + ["ticker"]
+    for q in eval_q:
+        i = quarters.index(q)
+        tr = lab[lab["quarter"].isin(quarters[:max(0, i - (gap - 1))])]
+        te = lab[lab["quarter"] == q]
+        if te.empty or tr["label"].nunique() < 2 or len(tr) < 12:
+            continue
+        m = _fit(kind, feats, est, tr)
+        pr = m.predict_proba(te[cols])
+        cls = list(m.classes_)
+        r = te[["ticker", "quarter", "predicted_quarter", "label", "target_value", "target_next"]].copy()
+        r["predicted"] = [cls[j] for j in pr.argmax(1)]
+        for c in LABELS:
+            r[f"proba_{c}"] = pr[:, cls.index(c)] if c in cls else 0.0
+        rows.append(r)
+    return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()
 
 
 # ----------------------------------------------------------------------------- mlflow (opsional)
@@ -130,96 +172,106 @@ HORIZONS = {1: {"label": "label", "pred_q": "predicted_quarter", "next": "target
 
 def run_horizon(df: pd.DataFrame, meta: dict, features: list[str], target: str, horizon: int,
                 test_quarters: int, run_id: str, now: dt.datetime, trigger: str) -> dict | None:
-    """Seleksi model (CV waktu) -> evaluasi hold-out -> refit -> prediksi, untuk satu horizon."""
+    """Pilih model terbaik lewat walk-forward (validasi) -> uji jujur pada kuartal terakhir -> refit -> prediksi."""
     h = HORIZONS[horizon]
     if h["label"] not in df:
         return None
     df = df.copy()
     df["label"], df["predicted_quarter"], df["target_next"] = df[h["label"]], df[h["pred_q"]], df[h["next"]]
+    df["target_delta"] = df["target_next"] - df["target_value"]
     thr = float(meta.get(h["thr"], meta.get("stable_threshold_pp", 0.5)))
 
     lab = df[df["label"].notna()].sort_values(["period_end", "ticker"]).reset_index(drop=True)
     unl = df[df["label"].isna()].sort_values("period_end").groupby("ticker").tail(1)
     quarters = sorted(lab["quarter"].unique())
-    if len(lab) < 12 or len(quarters) < 6:
+    min_train = 8
+    if len(lab) < 12 or len(quarters) < min_train + 3:
         if horizon == 1:
             raise SystemExit(f"Data berlabel terlalu sedikit ({len(lab)} baris, {len(quarters)} kuartal).")
         print(f"[h{horizon}] dilewati: data berlabel terlalu sedikit ({len(lab)} baris)")
         return None
-    n_test_q = test_quarters if len(quarters) >= 12 else max(1, len(quarters) // 4)
-    test_q = quarters[-n_test_q:]
-    train, test = lab[~lab["quarter"].isin(test_q)], lab[lab["quarter"].isin(test_q)]
-    cols = features + ["ticker"]
+    wf_q = quarters[min_train:]
+    n_test = min(test_quarters, max(2, len(wf_q) // 3))
+    val_q, test_q = wf_q[:-n_test], wf_q[-n_test:]
 
-    models = make_models(features)
-    cv = {}
-    for name, mdl in models.items():
-        scores = []
-        for tr_q, va_q in time_folds(sorted(train["quarter"].unique())):
-            tr, va = train[train["quarter"].isin(tr_q)], train[train["quarter"].isin(va_q)]
-            if tr["label"].nunique() < 2 or va.empty:
-                continue
-            m = clone(mdl).fit(tr[cols], tr["label"])
-            scores.append(macro_f1(va["label"], m.predict(va[cols])))
-        cv[name] = float(np.mean(scores)) if scores else 0.0
-    best_name = max(cv, key=cv.get)
-    best = clone(models[best_name]).fit(train[cols], train["label"])
+    # ---- 1) seleksi kandidat pada kuartal validasi (walk-forward)
+    cands = make_candidates(features, thr, horizon)
+    val_scores, val_preds = {}, {}
+    for name, (kind, feats, est) in cands.items():
+        wf = walk_forward(lab, kind, feats, est, val_q, horizon, quarters)
+        val_preds[name] = wf
+        val_scores[name] = macro_f1(wf["label"], wf["predicted"]) if len(wf) else 0.0
+    best_name = max(val_scores, key=lambda k: (round(val_scores[k], 3), -len(cands[k][1])))   # seri -> fitur lebih sedikit
+    kind, feats, est = cands[best_name]
+    old_name = "random_forest|lengkap"                                   # padanan model versi sebelumnya
 
-    y_pred = best.predict(test[cols])
-    p, r, f, s_ = precision_recall_fscore_support(test["label"], y_pred, labels=LABELS, zero_division=0)
-    maj = DummyClassifier(strategy="most_frequent").fit(train[cols], train["label"]).predict(test[cols])
-    pers = persistence_pred(test, thr, target, horizon)
+    # ---- 2) uji jujur pada kuartal terakhir (walk-forward) untuk model terpilih + pembanding
+    test = walk_forward(lab, kind, feats, est, test_q, horizon, quarters)
+    old = walk_forward(lab, *cands[old_name], test_q, horizon, quarters) if old_name in cands else pd.DataFrame()
+    allwf = pd.concat([val_preds[best_name], test], ignore_index=True)
+    y, yp = test["label"], test["predicted"]
+    p_, r_, f_, s_ = precision_recall_fscore_support(y, yp, labels=LABELS, zero_division=0)
+    tr_major = lab[lab["quarter"] < test_q[0]]["label"].mode()
+    maj = [tr_major.iloc[0] if len(tr_major) else "stabil"] * len(test)
+    pers = persistence_pred(lab.set_index(["ticker", "quarter"]).loc[list(zip(test["ticker"], test["quarter"]))]
+                            .reset_index(), thr, target, horizon)
     test_metrics = {
-        "accuracy": float(accuracy_score(test["label"], y_pred)), "macro_f1": macro_f1(test["label"], y_pred),
-        "per_class": {lbl: {"precision": float(p[i]), "recall": float(r[i]), "f1": float(f[i]), "support": int(s_[i])}
+        "accuracy": float(accuracy_score(y, yp)), "macro_f1": macro_f1(y, yp), "n": int(len(test)),
+        "per_class": {lbl: {"precision": float(p_[i]), "recall": float(r_[i]), "f1": float(f_[i]), "support": int(s_[i])}
                       for i, lbl in enumerate(LABELS)},
-        "confusion_matrix": {"labels": LABELS, "matrix": confusion_matrix(test["label"], y_pred, labels=LABELS).tolist()},
+        "confusion_matrix": {"labels": LABELS, "matrix": confusion_matrix(y, yp, labels=LABELS).tolist()},
     }
-    baselines = {"majority": {"accuracy": float(accuracy_score(test["label"], maj)), "macro_f1": macro_f1(test["label"], maj)},
-                 "persistence": {"accuracy": float(accuracy_score(test["label"], pers)), "macro_f1": macro_f1(test["label"], pers)}}
+    baselines = {"majority": {"accuracy": float(accuracy_score(y, maj)), "macro_f1": macro_f1(y, maj)},
+                 "persistence": {"accuracy": float(accuracy_score(y, pers)), "macro_f1": macro_f1(y, pers)},
+                 "model_lama": ({"accuracy": float(accuracy_score(old["label"], old["predicted"])),
+                                 "macro_f1": macro_f1(old["label"], old["predicted"])} if len(old) else None)}
+    walk = {"n_prediksi": int(len(allwf)), "kuartal": [str(wf_q[0]), str(wf_q[-1])],
+            "accuracy": float(accuracy_score(allwf["label"], allwf["predicted"])) if len(allwf) else None,
+            "macro_f1": macro_f1(allwf["label"], allwf["predicted"]) if len(allwf) else None}
 
-    eval_set = test if len(test) >= 6 else train
-    pi = permutation_importance(best, eval_set[cols], eval_set["label"], n_repeats=10, random_state=0,
-                                scoring="f1_macro")
+    # ---- 3) refit pada SEMUA data berlabel, prediksi kuartal berikutnya
+    final = _fit(kind, feats, est, lab)
+    cols = feats + ["ticker"]
+    pre_test = lab[lab["quarter"] < test_q[0]]
+    imp_model = _fit(kind, feats, est, pre_test) if pre_test["label"].nunique() >= 2 else final
+    ev = lab[lab["quarter"].isin(test_q)]
+    pi = permutation_importance(imp_model, ev[cols], ev["label"], n_repeats=10, random_state=0, scoring="f1_macro")
     fi = pd.DataFrame({"feature": cols, "importance": pi.importances_mean, "std": pi.importances_std}) \
         .sort_values("importance", ascending=False)
 
-    proba_cols = lambda m: [f"proba_{c}" for c in m.classes_]  # noqa: E731
-    backtest = test[["ticker", "quarter", "predicted_quarter", "label", "target_value", "target_next"]].copy()
-    backtest = backtest.rename(columns={"label": "actual"})
-    backtest["predicted"] = y_pred
+    backtest = test.rename(columns={"label": "actual"})
     backtest["correct"] = backtest["actual"] == backtest["predicted"]
-    backtest[proba_cols(best)] = best.predict_proba(test[cols])
-
-    final = clone(models[best_name]).fit(lab[cols], lab["label"])
     pred = unl[["ticker", "quarter", "predicted_quarter", "target_value"]].rename(
         columns={"quarter": "base_quarter", "target_value": "current_value"}).copy()
     if len(unl):
         pr = final.predict_proba(unl[cols])
-        pred["prediction"] = final.classes_[pr.argmax(1)]
-        pred[proba_cols(final)] = pr
+        cls = list(final.classes_)
+        pred["prediction"] = [cls[j] for j in pr.argmax(1)]
+        for c in LABELS:
+            pred[f"proba_{c}"] = pr[:, cls.index(c)] if c in cls else 0.0
         pred["confidence"] = pr.max(1)
-    for c in LABELS:
-        if f"proba_{c}" not in pred:
-            pred[f"proba_{c}"] = 0.0
+        if kind == "reg":
+            pred["predicted_delta"] = final.predict_delta(unl[cols])
     pred["target_ratio"], pred["model_name"], pred["run_id"] = target, best_name, run_id
     pred["generated_at"], pred["horizon"] = now.isoformat(), horizon
 
     model_version = mlflow_log({"best_model": best_name, "target": target, "trigger": trigger, "horizon": horizon,
-                                "n_train": len(train), "n_test": len(test)},
-                               {"cv_macro_f1": cv[best_name], "test_accuracy": test_metrics["accuracy"],
+                                "n_labeled": len(lab), "n_test": len(test)},
+                               {"val_macro_f1": val_scores[best_name], "test_accuracy": test_metrics["accuracy"],
                                 "test_macro_f1": test_metrics["macro_f1"]}, final,
                                f"retrain-{trigger}" + ("" if horizon == 1 else f"-h{horizon}"))
     metrics = {"run_id": run_id, "trained_at": now.isoformat(), "trigger": trigger, "best_model": best_name,
-               "horizon": horizon, "horizon_name": h["name"],
+               "jenis_model": "regresi→arah" if kind == "reg" else "klasifikasi", "n_fitur": len(feats),
+               "fitur": feats, "horizon": horizon, "horizon_name": h["name"],
                "model_version": model_version, "target_ratio": target, "stable_threshold_pp": thr,
-               "n_rows_labeled": len(lab), "n_train": len(train), "n_test": len(test), "test_quarters": test_q,
-               "data_max_quarter": str(df["quarter"].max()), "cv_macro_f1": cv, "test": test_metrics,
-               "baselines": baselines, "sklearn_version": sklearn.__version__}
-    bundle = {"model": final, "features": features, "classes": list(final.classes_), "model_name": best_name,
+               "n_rows_labeled": len(lab), "n_train": int(len(pre_test)), "n_test": int(len(test)),
+               "test_quarters": test_q, "validation_quarters": val_q,
+               "data_max_quarter": str(df["quarter"].max()), "cv_macro_f1": val_scores, "test": test_metrics,
+               "walk_forward": walk, "baselines": baselines, "sklearn_version": sklearn.__version__}
+    bundle = {"model": final, "features": feats, "classes": list(final.classes_), "model_name": best_name,
               "run_id": run_id, "trained_at": now.isoformat(), "horizon": horizon}
     return {"pred": pred, "backtest": backtest, "fi": fi, "metrics": metrics, "bundle": bundle,
-            "n_lab": len(lab), "cv_best": cv[best_name]}
+            "n_lab": len(lab), "cv_best": val_scores[best_name]}
 
 
 def write_outputs(res: dict, folder: str) -> None:
@@ -236,7 +288,7 @@ def main() -> None:
     ap.add_argument("--features", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--trigger", default="manual")
-    ap.add_argument("--test-quarters", type=int, default=4)
+    ap.add_argument("--test-quarters", type=int, default=6)
     a = ap.parse_args()
 
     df, meta = load_features(a.features)

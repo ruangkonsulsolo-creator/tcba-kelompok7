@@ -72,9 +72,11 @@ def test_end_to_end_local(tmp_path):
     item = live["items"][0]
     assert abs(item["proba_naik"] + item["proba_stabil"] + item["proba_turun"] - 1) < 1e-3
     assert item["live_features"]["ret_q"] is not None and item["data_as_of"]["prices"]
+    feats_model = api.predict_live(lake, {})[1]["fitur_model"]
     status, sim = api.predict_live(lake, {"ticker": "TLKM", "bi_rate": "9", "bukan_fitur": "1"})
-    assert status == 200 and sim["mode"] == "simulasi" and sim["simulation"] == {"bi_rate": 9.0}
-    assert [r["ticker"] for r in sim["items"]] == ["TLKM"] and sim["items"][0]["live_features"]["bi_rate"] == 9.0
+    assert status == 200 and sim["simulation"] == ({"bi_rate": 9.0} if "bi_rate" in feats_model else {})
+    assert [r["ticker"] for r in sim["items"]] == ["TLKM"] and (sim["items"][0]["live_features"]["bi_rate"] == 9.0 or "bi_rate" not in feats_model)
+    assert "fitur_model" in sim and isinstance(sim["fitur_live_dipakai"], list)
     status, one = api.predict(lake, {"ticker": "ISAT"})
     assert status == 200 and one["prediction"] in ("naik", "stabil", "turun")
     # horizon tahun depan, evaluasi prediksi vs aktual, analisis pengaruh

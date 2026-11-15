@@ -27,6 +27,11 @@ def ttm_ratios(f: pd.DataFrame) -> pd.DataFrame:
         full = pd.period_range(g.index.min(), g.index.max(), freq="Q")
         g = g.reindex(full)
         g["ticker"] = tic
+        # Neraca (aset, ekuitas) kadang tidak tersedia di sumber berita untuk kuartal tertentu. Celah maksimal
+        # 2 kuartal diisi interpolasi linear (neraca berubah perlahan) agar baris tidak terbuang.
+        for c in ("total_assets", "total_equity"):
+            g[f"{c}_interp"] = g[c].isna().astype(int)
+            g[c] = g[c].interpolate(limit=2, limit_area="inside")
         prev_ytd_ni = g["net_income_ytd"].shift(1)
         prev_ytd_rev = g["revenue_ytd"].shift(1)
         q1 = np.array([p.quarter == 1 for p in g.index])
@@ -40,6 +45,12 @@ def ttm_ratios(f: pd.DataFrame) -> pd.DataFrame:
         g["roe_ttm"] = g["ni_ttm"] / avg_equity * 100
         g["npm_ttm"] = g["ni_ttm"] / g["rev_ttm"] * 100
         g["rev_growth_yoy"] = (g["rev_ttm"] / g["rev_ttm"].shift(4) - 1) * 100
+        # Efek basis: TTM kuartal depan = TTM sekarang + laba kuartal baru - laba kuartal (t-3) yang keluar jendela.
+        # Kuartal (t-3) adalah kuartal yang sama tahun lalu dengan kuartal yang akan datang (pola musiman).
+        g["roe_q"] = g["ni_q"] / avg_equity * 100                      # kontribusi ROE kuartal ini
+        g["roe_q_drop"] = g["roe_q"].shift(3)                          # kontribusi yang akan keluar dari TTM
+        g["base_gap"] = g["roe_q"] - g["roe_q_drop"]                   # >0: laju laba sekarang > kuartal yang keluar
+        g["ni_base_gap"] = (g["ni_q"] - g["ni_q"].shift(3)) / g["ni_ttm"].abs() * 100
         out.append(g.reset_index(names="period"))
     r = pd.concat(out, ignore_index=True)
     return r.dropna(subset=["roe_ttm", "roa_ttm", "npm_ttm"])
@@ -110,7 +121,17 @@ def build_features(lake: Lake) -> dict:
                           lake.read_parquet_or_empty(S, "manual_clean/bi_rate.parquet"),
                           lake.read_parquet_or_empty(S, "manual_clean/inflation.parquet"))
     sen = sentiment_quarterly(lake.read_parquet_or_empty(S, "news/news_scored.parquet"))
+    df, meta = assemble(base, mkt, mac, sen)
+    lake.write_parquet(G, FEATURES_PATH, df)
+    lake.write_json(G, "features/feature_list.json", meta)
+    lab = df["label"].dropna()
+    return {"job": "build_gold", "status": "ok", "rows": len(df), "labeled": int(lab.size),
+            "label_counts": lab.value_counts().to_dict(),
+            "latest_quarter": df.groupby("ticker")["quarter"].max().to_dict()}
 
+
+def assemble(base: pd.DataFrame, mkt: pd.DataFrame, mac: pd.DataFrame, sen: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Gabungkan rasio fundamental + fitur pasar/makro/sentimen kuartalan -> tabel Gold + metadata fitur."""
     df = base.merge(mkt, on=["ticker", "period"], how="left").merge(mac, on="period", how="left")
     df = df.merge(sen, on=["ticker", "period"], how="left")
     for c in ("ret_q", "vol_q", "volume_chg", "excess_ret_q", "ret_jkse", "usd_idr_avg", "usd_idr_chg",
@@ -118,6 +139,15 @@ def build_features(lake: Lake) -> dict:
         if c not in df:
             df[c] = np.nan
     df["has_news"] = df["sent_n"].notna().astype(int)
+    # Penanda kejadian khusus (struktural) yang tidak tercermin di data pasar/makro/berita:
+    #  - merger: Indosat-Tri efektif 4 Jan 2022 (tahun integrasi 2022); XL-Smartfren (XLSmart) efektif 16 Apr 2025.
+    #  - akuntansi: Telkom mempercepat depresiasi (penyesuaian umur aset) mulai laporan 2025.
+    per = df["period"]
+    df["evt_merger"] = (((df["ticker"] == "EXCL") & (per >= pd.Period("2025Q2", freq="Q"))) |
+                        ((df["ticker"] == "ISAT") & (per >= pd.Period("2022Q1", freq="Q")) &
+                         (per <= pd.Period("2022Q4", freq="Q")))).astype(int)
+    df["evt_akuntansi"] = ((df["ticker"] == "TLKM") & (per >= pd.Period("2025Q1", freq="Q"))).astype(int)
+    df["q_of_year"] = per.dt.quarter
     df[["sent_mean", "sent_neg_share"]] = df[["sent_mean", "sent_neg_share"]].fillna(0.0)
     df["sent_n"] = df["sent_n"].fillna(0)
 
@@ -152,6 +182,7 @@ def build_features(lake: Lake) -> dict:
         "ret_q", "vol_q", "volume_chg", "excess_ret_q", "ret_jkse",
         "usd_idr_avg", "usd_idr_chg", "bi_rate", "bi_rate_chg", "inflation_yoy",
         "sent_mean", "sent_n", "sent_neg_share", "has_news",
+        "roe_q", "roe_q_drop", "base_gap", "ni_base_gap", "evt_merger", "evt_akuntansi", "q_of_year",
     ]
     for c in feature_cols:
         if c not in df:
@@ -160,11 +191,5 @@ def build_features(lake: Lake) -> dict:
            ["target_ratio", "target_value", "target_next", "target_delta", "label",
             "target_next4", "target_delta4", "label_4q", "predicted_quarter_4q"]
     df = df[cols]
-    lake.write_parquet(G, FEATURES_PATH, df)
-    lake.write_json(G, "features/feature_list.json",
-                    {"features": feature_cols, "categorical": ["ticker"], "target_ratio": tgt,
-                     "stable_threshold_pp": thr, "stable_threshold_pp_4q": thr4, "labels": list(LABELS)})
-    lab = df["label"].dropna()
-    return {"job": "build_gold", "status": "ok", "rows": len(df), "labeled": int(lab.size),
-            "label_counts": lab.value_counts().to_dict(),
-            "latest_quarter": df.groupby("ticker")["quarter"].max().to_dict()}
+    return df, {"features": feature_cols, "categorical": ["ticker"], "target_ratio": tgt,
+                "stable_threshold_pp": thr, "stable_threshold_pp_4q": thr4, "labels": list(LABELS)}

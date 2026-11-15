@@ -47,9 +47,21 @@ def _utcnow() -> pd.Timestamp:
 
 
 # ----------------------------------------------------------------------------- cache
+def _model_paths() -> None:
+    """model.pkl bisa memuat kelas RegDirection dari aml/src/tcba_model.py (di Azure: functions/aml_src)."""
+    import os
+    import sys
+    here = os.path.dirname(os.path.abspath(__file__))
+    for p in (os.path.join(here, "..", "aml_src"), os.path.join(here, "..", "..", "aml", "src")):
+        p = os.path.normpath(p)
+        if os.path.isdir(p) and p not in sys.path:
+            sys.path.append(p)
+
+
 def load_model(lake: Lake, horizon: int = 1) -> dict | None:
     """Model di-cache per (horizon, run_id): setelah retrain, panggilan berikutnya otomatis memakai model baru."""
     import joblib
+    _model_paths()
     d = ML if horizon == 1 else f"{ML}/h4"
     if not lake.exists(G, f"{d}/model.pkl"):
         return None
@@ -220,7 +232,7 @@ def predict_live(lake: Lake, q: dict | None = None):
             "prediction": classes[int(np.argmax(pr))], "confidence": round(float(np.max(pr)), 4),
             "proba_naik": proba.get("naik", 0.0), "proba_stabil": proba.get("stabil", 0.0),
             "proba_turun": proba.get("turun", 0.0),
-            "live_features": {k: _num(row.get(k)) for k in LIVE_FEATURES if k in cols},
+            "live_features": {k: _num(sim.get(k, live.get(k))) for k in LIVE_FEATURES},
             "data_as_of": {"prices": mk["prices_as_of"], "fx": macro["fx_as_of"], "news": nw["news_as_of"]},
             "fundamentals_stale": str(base["quarter"]) < str(pd.Period(cur_q, freq="Q") - 1),
         })
@@ -232,7 +244,8 @@ def predict_live(lake: Lake, q: dict | None = None):
         "generated_at": _utcnow().isoformat() + "Z",
         "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
         "model": bundle.get("model_name"), "run_id": bundle.get("run_id"), "trained_at": bundle.get("trained_at"),
-        "current_quarter": cur_q,
+        "current_quarter": cur_q, "fitur_model": list(cols),
+        "fitur_live_dipakai": [k for k in LIVE_FEATURES if k in cols],
         "items": items,
         "note": ("Rasio fundamental dari laporan keuangan terakhir; fitur pasar, kurs, makro, dan sentimen "
                  f"dihitung saat ini dari {WINDOW_DAYS} hari data terakhir."),
