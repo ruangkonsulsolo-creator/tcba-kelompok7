@@ -49,6 +49,28 @@ python scripts/upload_bronze.py manual --name fundamentals --file data/fundament
 make cost      # cek biaya & resource berisiko
 ```
 
+## Model v3 — data 10 tahun + proyeksi mekanis (Nov 2026)
+- **Data**: fundamental TLKM/ISAT/EXCL kini 2015Q1–2026Q3 (sebelumnya 2020+), BI-Rate & inflasi 2015–2026.
+  Baris berlabel 67 → 128. TLKM 2015–2019 dari Info Memo/laporan keuangan resmi Telkom. ISAT & EXCL
+  2015–2019: pendapatan & laba YTD dari rilis/berita keuangan (link per baris di `source_url`), neraca
+  akhir tahun dari laporan tahunan resmi; neraca Q1–Q3 tidak tersedia publik → diinterpolasi untuk LABEL
+  (ditandai `total_equity_interp`), sedangkan FITUR proyeksi memakai neraca terakhir yang sudah dirilis (point-in-time).
+  BI-Rate: BI Rate lama s.d. Mar-2016, BI 7-Day RR Rate sejak Apr-2016 (ada lompatan karena ganti instrumen).
+- **Fitur baru** `roe_proj_delta` (Gold): proyeksi ROE TTM kuartal depan = laba TTM − laba kuartal yang keluar
+  dari jendela TTM + run-rate 2 kuartal terakhir, dibagi ekuitas rata-rata dengan pola musiman ekuitas (dividen).
+- **Kandidat model baru** `proyeksi_mekanis` (`ProjectionRule` di `aml/src/tcba_model.py`): arah = ambang 'stabil'
+  yang sama dengan label; tidak ada parameter arah yang dilatih. Dipilih otomatis lewat validasi walk-forward.
+- **Hasil uji jujur (walk-forward, tanpa data masa depan)**, ambang stabil ±0,91 pp, 3 kelas seimbang:
+
+  | Evaluasi | n prediksi | Akurasi | Macro-F1 |
+  |---|---|---|---|
+  | Uji 2023Q4–2026Q2 (model terpilih) | 32 | **75,0%** | 0,74 |
+  | Walk-forward penuh 2017Q4–2026Q2 | 104 | **64,4%** | 0,64 |
+  | Baseline persistence (uji) | 32 | 28,1% | 0,27 |
+  | Model lama `random_forest|lengkap` (uji) | 32 | 59,4% | 0,60 |
+
+  Per emiten (walk-forward penuh): TLKM 69%, ISAT 66%, EXCL 59%. Horizon tahun depan (4 kuartal) masih lemah (±38–52%).
+
 ## API untuk dashboard / Power BI (GET, tanpa key)
 | Endpoint | Isi |
 |---|---|

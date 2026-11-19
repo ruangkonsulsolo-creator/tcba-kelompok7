@@ -1,4 +1,24 @@
 ticker,fiscal_year,quarter,period_end,revenue_ytd,net_income_ytd,total_assets,total_equity,currency_unit,source_url
+EXCL,2015,1,2015-03-31,5480.0,-758.0,63900.0,,miliar_rupiah,https://investasi.kontan.co.id/news/kuartal-i-excl-bukukan-laba-rp-16926-miliar
+EXCL,2015,2,2015-06-30,11091.0,-850.89,,,miliar_rupiah,https://www.indotelko.com/read/1471990063/XL-bukukan-laba-Rp-225-miliar
+EXCL,2015,3,2015-09-30,16986.0,-506.55,,,miliar_rupiah,https://www.indotelko.com/read/1477621716/XL-laba-160-miliar-III-2016
+EXCL,2015,4,2015-12-31,22960.0,-25.33,58850.0,14100.0,miliar_rupiah,https://market.bisnis.com/read/20160218/192/520223/kinerja-excl-2015-rugi-bersih-xl-axiata-terpangkas
+EXCL,2016,1,2016-03-31,5630.0,169.26,,,miliar_rupiah,https://www.indotelko.com/read/1495594077/XL-pendapatan-Rp-5-27 || https://investasi.kontan.co.id/news/kuartal-i-excl-bukukan-laba-rp-16926-miliar
+EXCL,2016,2,2016-06-30,10887.0,224.74,,,miliar_rupiah,https://www.indotelko.com/read/1471990063/XL-bukukan-laba-Rp-225-miliar
+EXCL,2016,3,2016-09-30,16137.0,159.71,,,miliar_rupiah,https://www.indotelko.com/read/1477621716/XL-laba-160-miliar-III-2016
+EXCL,2016,4,2016-12-31,21412.0,375.52,54896.0,21209.0,miliar_rupiah,https://staticxl.ext.xlaxiata.co.id/xlfipbook/2020/Annual_Report_Flipbook/IAR XL Axiata 2020 ENG-Final-Hires/files/basic-html/page51.html
+EXCL,2017,1,2017-03-31,5270.0,46.5,,,miliar_rupiah,https://www.indotelko.com/read/1495594077/XL-pendapatan-Rp-5-27
+EXCL,2017,2,2017-06-30,10950.0,143.11,,,miliar_rupiah,https://www.indotelko.com/read/1501472453/XL-Rp-143-miliar
+EXCL,2017,3,2017-09-30,16926.0,238.06,,,miliar_rupiah,https://selular.id/2017/11/q3-2017-xl-axiata-raup-laba-bersih-rp238-milliar/
+EXCL,2017,4,2017-12-31,22901.0,375.0,56321.0,21631.0,miliar_rupiah,https://staticxl.ext.xlaxiata.co.id/xlfipbook/2020/Annual_Report_Flipbook/IAR XL Axiata 2020 ENG-Final-Hires/files/basic-html/page51.html
+EXCL,2018,1,2018-03-31,5500.0,15.43,,,miliar_rupiah,https://investasi.kontan.co.id/news/ditopang-data-pendapatan-xl-axiata-tumbuh-4-pada-kuartal-i-2018
+EXCL,2018,2,2018-06-30,11040.0,-81.74,,,miliar_rupiah,https://industri.kontan.co.id/news/xl-axiata-merugi-rp-8174-miliar-di-semester-i
+EXCL,2018,3,2018-09-30,16900.0,-144.81,,,miliar_rupiah,https://investasi.kontan.co.id/news/kinerja-keuangan-turun-analis-masih-sarankan-beli-saham-xl-axiata-excl
+EXCL,2018,4,2018-12-31,23001.0,-3297.0,57614.0,18343.0,miliar_rupiah,https://staticxl.ext.xlaxiata.co.id/xlfipbook/2020/Annual_Report_Flipbook/IAR XL Axiata 2020 ENG-Final-Hires/files/basic-html/page51.html
+EXCL,2019,1,2019-03-31,5970.0,57.19,,,miliar_rupiah,https://investasi.kontan.co.id/news/laba-bersih-xl-axiata-excl-tumbuh-271-per-kuartal-i-2019-ini-pendorongnya
+EXCL,2019,2,2019-06-30,12260.0,282.4,,,miliar_rupiah,https://investasi.kontan.co.id/news/emiten-telekomunikasi-kompak-bukukan-perbaikan-kinerja-di-semester-i-2019?page=all
+EXCL,2019,3,2019-09-30,18730.0,498.41,,,miliar_rupiah,https://investasi.kontan.co.id/news/pendapatan-naik-10-xl-axiata-excl-mencetak-untung
+EXCL,2019,4,2019-12-31,25150.0,712.58,62725.0,19122.0,miliar_rupiah,https://staticxl.ext.xlaxiata.co.id/xlfipbook/2020/Annual_Report_Flipbook/IAR XL Axiata 2020 ENG-Final-Hires/files/basic-html/page51.html
 EXCL,2020,1,2020-03-31,6490.0,1540.0,,,miliar_rupiah,https://www.cnbcindonesia.com/market/20210427111006-17-241155/astaga-laba-xl-axiata-ambles-79-di-q1-2021 || 
 EXCL,2020,2,2020-06-30,13060.0,1740.0,,,miliar_rupiah,https://economy.okezone.com/read/2021/08/06/278/2451875/laba-xl-axiata-turun-58-9-di-semester-i-2021-ini-penyebabnya?page=all || 
 EXCL,2020,3,2020-09-30,19650.0,2070.0,,,miliar_rupiah,https://www.fortuneidn.com/market/laba-xl-axiata-anjlok-51-persen-di-kuartal-iii-2021-00-29s55-x0rw07 || 
@@ -23,6 +43,28 @@ EXCL,2025,1,2025-03-31,8600.0,384.56,84830.0,,miliar_rupiah,https://investortrus
 EXCL,2025,2,2025-06-30,19100.0,-1220.0,,,miliar_rupiah,https://investortrust.id/market/77032/pendapatan-xlsmart-excl-di-semester-i-2025-capai-rp-19-1-trlliun | https://insight.kontan.co.id/news/beban-bengkak-xlsmart-telecom-excl-rugi-rp-122-triliun-di-semester-i-2025 || 
 EXCL,2025,3,2025-09-30,30540.0,-2600.0,,,miliar_rupiah,https://www.romisaputra.com/2025/11/xlsmart-telecom-excl-catat-rugi-bersih.html || 
 EXCL,2025,4,2025-12-31,42445.96,-4426.618,115300.0,30010.0,miliar_rupiah,https://stockanalysis.com/quote/idx/EXCL/financials || https://www.cnbcindonesia.com/market/20260213105953-17-710918/2025-xlsmart--excl--catat-rugi-rp442-triliun
+EXCL,2026,1,2026-03-31,11820.0,-716.93,111850.228,29310.0,miliar_rupiah,https://indopremier.com/xdir/news/LAPORAN%20KEUANGAN/2026/q1/EXCL_Q1_2026.pdf | https://wartaekonomi.co.id/read611367/beban-membengkak-excl-berbalik-rugi-rp716-miliar
+EXCL,2026,2,2026-06-30,23990.0,-994.15,113550.0,29050.0,miliar_rupiah,https://investasi.kontan.co.id/news/pendapatan-xlsmart-excl-semester-i-2026-tumbuh-257-cek-rekomendasi-analis | neraca: https://www.kabarbursa.com/market-hari-ini/rapor-semester-i-2026-emiten-telko-mana-paling-menarik-buat-investor
+ISAT,2015,1,2015-03-31,6090.0,-455.5,52830.0,13870.0,miliar_rupiah,https://market.bisnis.com/read/20150525/192/437013/setelah-laba-indosat-rugi-ratusan-miliar-akibat-kurs-rupiah
+ISAT,2015,2,2015-06-30,12620.0,-733.8,,,miliar_rupiah,https://www.indotelko.com/read/1471827796/Indosat-keuntungan-428-1-miliar
+ISAT,2015,3,2015-09-30,19580.0,-1120.0,,,miliar_rupiah,https://market.bisnis.com/read/20161116/192/603325/kinerja-kuartal-iii2016-indosat-isat-kantongi-laba-bersih-rp84535-miliar
+ISAT,2015,4,2015-12-31,26768.5,-1310.0,55388.5,13263.8,miliar_rupiah,https://cdn.indonesia-investments.com/bedrijfsprofiel/200/Indosat-Ooredoo-Annual-Report-2016-Company-Profile-Indonesia-Investments.pdf
+ISAT,2016,1,2016-03-31,6810.0,217.2,,,miliar_rupiah,https://inet.detik.com/telecommunication/d-3207583/indosat-untung-rp-217-miliar
+ISAT,2016,2,2016-06-30,13942.0,428.07,,,miliar_rupiah,https://investasi.kontan.co.id/news/juni-2016-indosat-bukukan-laba-rp-42807-miliar
+ISAT,2016,3,2016-09-30,21524.0,845.35,,,miliar_rupiah,https://market.bisnis.com/read/20161116/192/603325/kinerja-kuartal-iii2016-indosat-isat-kantongi-laba-bersih-rp84535-miliar
+ISAT,2016,4,2016-12-31,29184.6,1105.0,50838.7,14177.1,miliar_rupiah,https://indosatooredoo.com/dataprod/portalcontent/portal/images/products/pdf/637400124614791177.pdf
+ISAT,2017,1,2017-03-31,7290.0,173.9,,,miliar_rupiah,https://www.telegeography.com/products/commsupdate/articles/2017/05/23/indosat-ooredoo-sees-revenue-growth-in-q1-but-net-profit-plummets/
+ISAT,2017,2,2017-06-30,15113.0,784.2,,,miliar_rupiah,https://www.indotelko.com/read/1502334735/Indosat-laba-Rp-784-2
+ISAT,2017,3,2017-09-30,22570.0,1090.0,,,miliar_rupiah,https://www.industry.co.id/read/46353/pendapatan-seluler-turun-hampir-30-indosat-per-september-2018-rugi-rp15-triliun
+ISAT,2017,4,2017-12-31,29926.1,1135.8,50661.0,14815.5,miliar_rupiah,https://indosatooredoo.com/dataprod/portalcontent/portal/images/products/pdf/637400071445811917.pdf
+ISAT,2018,1,2018-03-31,5690.0,-505.7,,,miliar_rupiah,https://investasi.kontan.co.id/news/efek-aturan-registrasi-sim-card-indosat-merugi-di-kuartal-i-2018
+ISAT,2018,2,2018-06-30,11060.0,-693.7,,,miliar_rupiah,https://www.indotelko.com/read/1565133169/indosat-tekan-i
+ISAT,2018,3,2018-09-30,16770.0,-1540.0,,,miliar_rupiah,https://www.industry.co.id/read/46353/pendapatan-seluler-turun-hampir-30-indosat-per-september-2018-rugi-rp15-triliun
+ISAT,2018,4,2018-12-31,23139.5,-2403.8,53139.6,12136.2,miliar_rupiah,https://indosatooredoo.com/dataprod/portalcontent/portal/images/products/pdf/637400071445811917.pdf
+ISAT,2019,1,2019-03-31,6050.0,-292.5,,,miliar_rupiah,https://market.bisnis.com/read/20190513/192/921870/indosat-isat-tekan-rugi-bersih-2781-persen-di-kuartal-i2019
+ISAT,2019,2,2019-06-30,12290.0,-331.9,,,miliar_rupiah,https://investasi.kontan.co.id/news/semester-i-2019-indosat-isat-masih-rugi-rp-3319-miliar
+ISAT,2019,3,2019-09-30,18853.0,-284.59,,,miliar_rupiah,https://market.bisnis.com/read/20191106/192/1167393/pendapatan-naik-dua-digit-tapi-indosat-isat-masih-rugi
+ISAT,2019,4,2019-12-31,26117.5,1569.0,62813.0,13707.2,miliar_rupiah,https://indosatooredoo.com/dataprod/portalcontent/portal/images/products/pdf/637400071445811917.pdf
 ISAT,2020,1,2020-03-31,6520.0,-605.6,,,miliar_rupiah,https://insight.kontan.co.id/news/buntut-phk-kerugian-indosat-di-kuartal-i-2020-membengkak-jadi-rp-6056-miliar || 
 ISAT,2020,2,2020-06-30,13440.0,-341.1,,,miliar_rupiah,"https://insight.kontan.co.id/news/kinerja-indosat-kuartal-kedua-membaik-analis-kompak-rekomendasikan-beli-saham-isat (pendapatan = Q1 6,52 T + Q2 6,92 T) || "
 ISAT,2020,3,2020-09-30,20590.0,-457.5,,,miliar_rupiah,https://industri.kontan.co.id/news/indosat-isat-cetak-pendapatan-sebesar-rp-2059-triliun-per-september-2020?page=all || 
@@ -47,6 +89,29 @@ ISAT,2025,1,2025-03-31,13570.0,1310.0,113460.0,37900.0,miliar_rupiah,https://war
 ISAT,2025,2,2025-06-30,27109.6,2335.3,117504.4,36243.8,miliar_rupiah,https://bcasekuritas.co.id/latest-news/news/indosat-raih-pendapatan-rp271-triliun-hingga-juni-2025 (ekuitas = aset - liabilitas)
 ISAT,2025,3,2025-09-30,41160.0,3580.0,113720.0,37570.0,miliar_rupiah,https://wartaekonomi.co.id/read588224/laba-bersih-indosat-isat-terpangkas-jadi-rp358-triliun-per-kuartal-iii-2025
 ISAT,2025,4,2025-12-31,56518.141,5509.703,118629.871,39509.108,miliar_rupiah,https://stockanalysis.com/quote/idx/ISAT/financials | https://stockanalysis.com/quote/idx/ISAT/financials/balance-sheet/
+ISAT,2026,1,2026-03-31,15220.0,1490.0,122100.0,41030.0,miliar_rupiah,https://market.bisnis.com/read/20260505/192/1971393/laba-indosat-isat-menguat-1375-jadi-rp149-triliun-kuartal-i2026
+ISAT,2026,2,2026-06-30,30650.0,4310.0,138310.0,40100.0,miliar_rupiah,https://market.bisnis.com/read/20260728/192/1991678/laba-indosat-isat-tembus-rp431-t-di-semester-i2026-melesat-845 | neraca: https://bcasekuritas.co.id/latest-news/news/indosat-ctat-pendapatan-rp3065-trilin-di-semester-i-2026 (laba termasuk keuntungan FiberCo sekitar Rp1 T)
+ISAT,2026,3,2026-09-30,45750.0,4920.0,147640.0,40790.0,miliar_rupiah,https://investasi.kontan.co.id/news/indosat-isat-catat-kinerja-positif-hingga-kuartal-iii-2026
+TLKM,2015,1,2015-03-31,23616.0,3814.0,146672.0,71604.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1783066041387_original_2015-ENG-Consolidated-Financial-Statement-Q1.pdf
+TLKM,2015,2,2015-06-30,48840.0,7447.0,154050.0,66547.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1783074180842_original_2015-ENG-Consolidated-Financial-Statement-Q2.pdf
+TLKM,2015,3,2015-09-30,75719.0,11545.0,158394.0,70791.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1783074248731_original_2015-ENG-Consolidated-Financial-Statement-Q3.pdf
+TLKM,2015,4,2015-12-31,102470.0,15489.0,166173.0,75136.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1783075808122_original_2015-ENG-Consolidated-Financial-Statement-Q4.pdf
+TLKM,2016,1,2016-03-31,27542.0,4587.0,176992.0,79655.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310927311_1Q 2016.pdf
+TLKM,2016,2,2016-06-30,56454.0,9926.0,171411.0,78821.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576311388067_1H 2016.pdf
+TLKM,2016,3,2016-09-30,86188.0,14732.0,177462.0,83619.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310887547_9M 2016.pdf
+TLKM,2016,4,2016-12-31,116333.0,19352.0,179611.0,84384.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576311367096_FY 2016.pdf
+TLKM,2017,1,2017-03-31,31022.0,6688.0,187590.0,91077.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576311350298_1Q 2017.pdf
+TLKM,2017,2,2017-06-30,64021.0,12104.0,177843.0,84867.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310823062_1H 2017.pdf
+TLKM,2017,3,2017-09-30,97003.0,17922.0,190508.0,90714.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310805473_9M 2017.pdf
+TLKM,2017,4,2017-12-31,128256.0,22145.0,198484.0,92713.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310785533_FY 2017.pdf
+TLKM,2018,1,2018-03-31,32343.0,5734.0,206600.0,98493.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576311309603_1Q 2018.pdf
+TLKM,2018,2,2018-06-30,64368.0,8698.0,201960.0,84935.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1576308713701_Financial Statements (Unaudited) 1H 2018.pdf
+TLKM,2018,3,2018-09-30,99203.0,14232.0,204893.0,90530.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310716590_9M 2018.pdf
+TLKM,2018,4,2018-12-31,130784.0,18032.0,206196.0,98910.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310698864_FY 2018.pdf
+TLKM,2019,1,2019-03-31,34840.0,6224.0,219111.0,105108.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310698864_FY 2018.pdf
+TLKM,2019,2,2019-06-30,69345.0,11078.0,215699.0,93949.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1576308599293_Financial Statements (Unaudited) 1H 2019.pdf
+TLKM,2019,3,2019-09-30,102631.0,16459.0,214990.0,99594.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1576310639705_9M 2019.pdf
+TLKM,2019,4,2019-12-31,135567.0,18663.0,221208.0,99561.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1590570277293_FS ENGLISH Q4 2019 IFAS_AUDITED.pdf
 TLKM,2020,1,2020-03-31,34194.0,5862.0,241914.0,106447.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1624883685344_TLKM 1Q21 Info Memo.pdf || https://telkom.co.id/minio/show/data/lampiran/1593576608406_TLKM Info Memo 1Q20.pdf
 TLKM,2020,2,2020-06-30,66856.0,10989.0,,,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1630393625842_TLKM 1H21 Info Memo.pdf || 
 TLKM,2020,3,2020-09-30,99941.0,16679.0,233219.0,101717.0,miliar_rupiah,https://telkom.co.id/minio/show/data/lampiran/1650300437206_TLKM 9M21 Info Memo.pdf || https://telkom.co.id/minio/show/data/lampiran/1604562911431_TLKM Info Memo 9M20.pdf
@@ -74,8 +139,3 @@ TLKM,2025,4,2025-12-31,146742.0,17814.0,287759.0,130685.0,miliar_rupiah,https://
 TLKM,2026,1,2026-03-31,37189.0,4344.0,289955.0,134492.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1780050217919_original_TW-I-2026-FS-Konsolidasian-Telkom-Eng.pdf
 TLKM,2026,2,2026-06-30,75878.0,10623.0,303087.0,118333.0,miliar_rupiah,https://www.telkom.co.id/minio/show/data/lampiran/1785496444169_original_Telkom-FS-English-TW-II-2026.pdf
 TLKM,2026,3,2026-09-30,113502.0,14446.0,279814.0,122296.0,miliar_rupiah,https://aro.telkom.co.id/minio/show/data/lampiran/1793379510627_original_Financial-Statements-Unaudited-3Q-2026.pdf
-ISAT,2026,1,2026-03-31,15220.0,1490.0,122100.0,41030.0,miliar_rupiah,https://market.bisnis.com/read/20260505/192/1971393/laba-indosat-isat-menguat-1375-jadi-rp149-triliun-kuartal-i2026
-ISAT,2026,2,2026-06-30,30650.0,4310.0,138310.0,40100.0,miliar_rupiah,https://market.bisnis.com/read/20260728/192/1991678/laba-indosat-isat-tembus-rp431-t-di-semester-i2026-melesat-845 | neraca: https://bcasekuritas.co.id/latest-news/news/indosat-ctat-pendapatan-rp3065-trilin-di-semester-i-2026 (laba termasuk keuntungan FiberCo sekitar Rp1 T)
-ISAT,2026,3,2026-09-30,45750.0,4920.0,147640.0,40790.0,miliar_rupiah,https://investasi.kontan.co.id/news/indosat-isat-catat-kinerja-positif-hingga-kuartal-iii-2026
-EXCL,2026,1,2026-03-31,11820.0,-716.93,111850.228,29310.0,miliar_rupiah,https://indopremier.com/xdir/news/LAPORAN%20KEUANGAN/2026/q1/EXCL_Q1_2026.pdf | https://wartaekonomi.co.id/read611367/beban-membengkak-excl-berbalik-rugi-rp716-miliar
-EXCL,2026,2,2026-06-30,23990.0,-994.15,113550.0,29050.0,miliar_rupiah,https://investasi.kontan.co.id/news/pendapatan-xlsmart-excl-semester-i-2026-tumbuh-257-cek-rekomendasi-analis | neraca: https://www.kabarbursa.com/market-hari-ini/rapor-semester-i-2026-emiten-telko-mana-paling-menarik-buat-investor

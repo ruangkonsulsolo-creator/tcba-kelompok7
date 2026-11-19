@@ -35,7 +35,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tcba_model import RegDirection  # noqa: E402
+from tcba_model import ProjectionRule, RegDirection  # noqa: E402
 
 warnings.filterwarnings("ignore")
 LABELS = ["turun", "stabil", "naik"]
@@ -80,9 +80,11 @@ def _pre(features: list[str], scale: bool):
 # Fitur "inti": efek basis TTM (korelasi ±0,7 dengan perubahan ROE kuartal depan pada data asli) + kejadian khusus.
 INTI = ["base_gap", "ni_base_gap", "roe_q", "roe_q_drop", "roe_ttm_chg1"]
 INTI_EVENT = INTI + ["evt_merger", "evt_akuntansi"]
+# Fitur "proyeksi": proyeksi mekanis ROE TTM kuartal depan (point-in-time) + tren fundamental.
+PROYEKSI = ["roe_proj_delta", "roe_ttm_chg1", "roe_ttm_chg4", "npm_ttm_chg1", "rev_growth_yoy"]
 
 
-def make_candidates(all_features: list[str], thr: float, horizon: int = 1) -> dict:
+def make_candidates(all_features: list[str], thr: float, horizon: int = 1, target: str = "roe_ttm") -> dict:
     """Kandidat = (algoritma) × (set fitur). 'clf' = klasifikasi langsung, 'reg' = regresi Δ lalu jadi arah."""
     sets = {"lengkap": all_features, "ringkas": [f for f in RINGKAS if f in all_features] or all_features}
     for name, lst in (("inti", INTI), ("inti_event", INTI_EVENT)):
@@ -102,6 +104,12 @@ def make_candidates(all_features: list[str], thr: float, horizon: int = 1) -> di
         out[f"rf_regresi_arah|{sname}"] = ("reg", feats, RegDirection(
             Pipeline([("pre", _pre(feats, False)), ("reg", RandomForestRegressor(
                 n_estimators=200, max_depth=3, min_samples_leaf=4, random_state=42))]), thr=thr))
+    # Proyeksi mekanis: mekanisme 1 kuartal & khusus ROE (pembaginya ekuitas).
+    if horizon == 1 and target == "roe_ttm" and "roe_proj_delta" in all_features:
+        out["proyeksi_mekanis|roe_proj_delta"] = ("reg", ["roe_proj_delta"], ProjectionRule(thr=thr))
+        feats = [f for f in PROYEKSI if f in all_features]
+        out["logistic_regression|proyeksi"] = ("clf", feats, Pipeline([("pre", _pre(feats, True)), ("clf", LogisticRegression(
+            C=1.0, max_iter=3000, class_weight="balanced"))]))
     return out
 
 
@@ -195,7 +203,7 @@ def run_horizon(df: pd.DataFrame, meta: dict, features: list[str], target: str, 
     val_q, test_q = wf_q[:-n_test], wf_q[-n_test:]
 
     # ---- 1) seleksi kandidat pada kuartal validasi (walk-forward)
-    cands = make_candidates(features, thr, horizon)
+    cands = make_candidates(features, thr, horizon, target)
     val_scores, val_preds = {}, {}
     for name, (kind, feats, est) in cands.items():
         wf = walk_forward(lab, kind, feats, est, val_q, horizon, quarters)
@@ -288,7 +296,7 @@ def main() -> None:
     ap.add_argument("--features", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--trigger", default="manual")
-    ap.add_argument("--test-quarters", type=int, default=6)
+    ap.add_argument("--test-quarters", type=int, default=12)
     a = ap.parse_args()
 
     df, meta = load_features(a.features)

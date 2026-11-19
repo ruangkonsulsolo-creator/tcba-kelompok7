@@ -28,10 +28,15 @@ def ttm_ratios(f: pd.DataFrame) -> pd.DataFrame:
         g = g.reindex(full)
         g["ticker"] = tic
         # Neraca (aset, ekuitas) kadang tidak tersedia di sumber berita untuk kuartal tertentu. Celah maksimal
-        # 2 kuartal diisi interpolasi linear (neraca berubah perlahan) agar baris tidak terbuang.
+        # 3 kuartal (= antar dua neraca akhir tahun, untuk data historis 2015-2019 ISAT/EXCL yang neraca
+        # kuartalannya tidak terbuka untuk publik) diisi interpolasi linear (neraca berubah perlahan).
+        # Kolom *_interp menandai baris hasil interpolasi agar bisa dilaporkan di BAB III.
+        # Versi point-in-time (PIT) untuk FITUR proyeksi: hanya neraca terakhir yang sudah dirilis (ffill),
+        # karena interpolasi memakai neraca akhir tahun berikutnya (= informasi masa depan bagi fitur).
+        g["total_equity_pit"] = g["total_equity"].ffill()
         for c in ("total_assets", "total_equity"):
             g[f"{c}_interp"] = g[c].isna().astype(int)
-            g[c] = g[c].interpolate(limit=2, limit_area="inside")
+            g[c] = g[c].interpolate(limit=3, limit_area="inside")
         prev_ytd_ni = g["net_income_ytd"].shift(1)
         prev_ytd_rev = g["revenue_ytd"].shift(1)
         q1 = np.array([p.quarter == 1 for p in g.index])
@@ -51,6 +56,16 @@ def ttm_ratios(f: pd.DataFrame) -> pd.DataFrame:
         g["roe_q_drop"] = g["roe_q"].shift(3)                          # kontribusi yang akan keluar dari TTM
         g["base_gap"] = g["roe_q"] - g["roe_q_drop"]                   # >0: laju laba sekarang > kuartal yang keluar
         g["ni_base_gap"] = (g["ni_q"] - g["ni_q"].shift(3)) / g["ni_ttm"].abs() * 100
+        # Proyeksi mekanis ROE TTM kuartal depan (lihat ProjectionRule di aml/src/tcba_model.py), point-in-time:
+        #   laba kuartal baru  ~ run-rate 2 kuartal terakhir
+        #   ekuitas t+1        ~ ekuitas t + perubahan ekuitas kuartal yang sama tahun lalu (dividen musiman)
+        eq = g["total_equity_pit"]
+        e3, e4 = eq.shift(3), eq.shift(4)
+        ni_next = (g["ni_q"] + g["ni_q"].shift(1)) / 2
+        ttm_next = g["ni_ttm"] - g["ni_q"].shift(3) + ni_next
+        roe_now_pit = g["ni_ttm"] / ((eq + e4.fillna(eq)) / 2) * 100
+        g["roe_proj"] = ttm_next / ((eq + (e3 - e4) + e3) / 2) * 100
+        g["roe_proj_delta"] = g["roe_proj"] - roe_now_pit
         out.append(g.reset_index(names="period"))
     r = pd.concat(out, ignore_index=True)
     return r.dropna(subset=["roe_ttm", "roa_ttm", "npm_ttm"])
@@ -183,6 +198,7 @@ def assemble(base: pd.DataFrame, mkt: pd.DataFrame, mac: pd.DataFrame, sen: pd.D
         "usd_idr_avg", "usd_idr_chg", "bi_rate", "bi_rate_chg", "inflation_yoy",
         "sent_mean", "sent_n", "sent_neg_share", "has_news",
         "roe_q", "roe_q_drop", "base_gap", "ni_base_gap", "evt_merger", "evt_akuntansi", "q_of_year",
+        "roe_proj_delta",
     ]
     for c in feature_cols:
         if c not in df:
